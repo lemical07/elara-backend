@@ -1,0 +1,34 @@
+{
+  "name": "elara-backend",
+  "version": "1.0.0",
+  "description": "ELARA Backend es la API REST de ELARA, una aplicación orientada a la gestión y consulta de un catálogo de películas, series y anime.",
+  "keywords": [
+    "ExpressJS",
+    "NodeJS",
+    "mysql2",
+    "Nodemon"
+  ],
+  "homepage": "https://github.com/lemical07/elara-backend#readme",
+  "bugs": {
+    "url": "https://github.com/lemical07/elara-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lemical07/elara-backend.git"
+  },
+  "license": "ISC",
+  "author": "lemical07",
+  "contributors": [
+    "lemical07 -  Selvin Lem",
+    "00edgar - Edgar Sánchez"
+  ],
+  "type": "module",
+  "main": "src/app.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
