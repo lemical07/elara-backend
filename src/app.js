@@ -1,38 +1,44 @@
 
-import express from 'express';
-import 'dotenv/config';
+import express from "express";
+import "dotenv/config";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "../docs/swagger.js";
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3000;
 
-//configuración de la aplicación
+// configuracion de la app
 app.use(express.json());
 
-// ruta estandar, unicamenete para la comprovación del servidor
-app.get('/health', (req, res) => {
+// doc. Swagger
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// ruta estandar servidor
+app.get("/health", (req, res) => {
     res.status(200).json({
-        estado: 'Prueba Aprovado',
-        mensaje: 'ELARA Backend en funcionamiento'
+        estado: "Prueba Aprobada",
+        mensaje: "ELARA Backend en funcionamiento"
     });
 });
 
-// registro de rutas - quí se agregarán las rutas del catálogo.
+// demás rutas
 
-// manejo de rutas inexistentes
+// rutas inexistentes
 app.use((req, res) => {
-    res.status(404).json({ mensaje: 'Ruta no encontrada'});
+    res.status(404).json({mensaje: "Ruta no encontrada"});
 });
 
-// manejador de errores
-app.use(manejadorErrores)
-function manejadorErrores(err, req, res, next){
+// manejo de errores
+function manejadorErrores(err, req, res, next) {
     res.status(err.statusCode || 500).json({
-        mensaje: err.message || 'Error interno del Servidor',
+        mensaje: err.message || "Error interno del servidor",
         errores: err.details || null
-    })
-};
+    });
+}
+
+app.use(manejadorErrores);
 
 // iniciar servidor
-app.listen(port, '0.0.0.0', () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`Servidor ELARA ejecutándose en el puerto ${PORT}`);
 });
