@@ -292,6 +292,30 @@ Se utilizarán los siguientes criterios:
 
 Los patrones se aplicarán de acuerdo con la arquitectura definida para ELARA, evitando complejidad innecesaria.
 
+## Documentación de la API con Swagger
+
+ELARA Backend utiliza **Swagger UI** y **swagger-jsdoc** para generar y visualizar la documentación de la API REST. La configuración se encuentra en `src/docs/swagger.js`, mientras que los endpoints se documentan mediante comentarios JSDoc en los archivos JavaScript correspondientes.
+
+### Ejecución
+
+Inicia el servidor en modo desarrollo:
+
+```bash
+npm run dev
+```
+
+Una vez iniciado, accede a la documentación desde el navegador:
+
+**Swagger UI:** http://localhost:3000/api-docs
+
+Para verificar que el servidor está funcionando correctamente, visita:
+
+**Health check:** http://localhost:3000/health
+
+Swagger UI permite consultar los endpoints documentados, revisar sus parámetros y respuestas, y ejecutar solicitudes mediante la opción **Try it out**, cuando esté disponible.
+
+> **Nota:** Si el servidor utiliza un puerto distinto de `3000`, reemplaza ese valor en las direcciones anteriores.
+
 ## Convenciones de desarrollo
 
 - Nombres de archivos y carpetas en inglés.
