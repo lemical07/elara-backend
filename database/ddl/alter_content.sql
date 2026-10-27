@@ -1,3 +1,0 @@
-ALTER TABLE contenido
-ADD COLUMN director VARCHAR(150) NULL,
-ADD COLUMN url_imagen VARCHAR(500) NULL;

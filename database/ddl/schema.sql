@@ -35,9 +35,21 @@ CREATE TABLE contenido(
     descripcion TEXT,
     anio YEAR NOT NULL,
     estado ENUM('pendiente', 'aprobado', 'rechazado') NOT NULL DEFAULT 'pendiente',
+    director VARCHAR(150) NULL,
+    url_imagen VARCHAR(500) NULL,
+    url_trailer VARCHAR(500) NULL,
 
     FOREIGN KEY (categoria_id) REFERENCES categoria(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (propuesto_por) REFERENCES usuario(id) ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE TABLE personaje(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    contenido_id INT NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    tipo ENUM('principal', 'secundario') NOT NULL,
+
+    FOREIGN KEY (contenido_id) REFERENCES contenido(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE review(
