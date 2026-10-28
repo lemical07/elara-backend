@@ -10,6 +10,14 @@ class CategoriaRepository {
         return rows[0];
     }
 
+    async crearCategoria(nombre, descripcion) {
+        const [result] = await pool.query(
+            'INSERT INTO categoria (nombre, descripcion) VALUES (?, ?)',
+            [nombre, descripcion || null]
+        );
+        return result.insertId;
+    }
+
     }
 
 export default new CategoriaRepository();
