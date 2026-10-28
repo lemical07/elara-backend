@@ -26,6 +26,11 @@ class CategoriaRepository {
         return result.affectedRows > 0;
     }
 
+    async eliminarCategoria(id) {
+        const [result] = await pool.query('DELETE FROM categoria WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+    }
+
     }
 
 export default new CategoriaRepository();
