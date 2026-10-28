@@ -30,5 +30,5 @@ app.use(manejarError);//manejo de errores
 
 // iniciar servidor
 app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Servidor ELARA ejecutándose en el puerto ${PORT}`);
+    console.log(`Servidor ELARA ejecutándose en el puerto http://localhost:${PORT}`);
 });
