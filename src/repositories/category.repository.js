@@ -18,6 +18,14 @@ class CategoriaRepository {
         return result.insertId;
     }
 
+    async actualizarCategoria(id, nombre, descripcion) {
+        const [result] = await pool.query(
+            'UPDATE categoria SET nombre = ?, descripcion = ? WHERE id = ?',
+            [nombre, descripcion, id]
+        );
+        return result.affectedRows > 0;
+    }
+
     }
 
 export default new CategoriaRepository();
