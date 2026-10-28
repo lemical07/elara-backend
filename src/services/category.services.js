@@ -13,6 +13,14 @@ class CategoriaService {
         return await categoriaRepository.crearCategoria(nombre.trim(), descripcion);
     }
 
+    async ActualizarCategoria(id, nombre, descripcion) {
+        const existe = await categoriaRepository.actualizarCategoria(id);
+        if (!existe) {
+            throw new Error('CATEGORIA_NO_ENCONTRADA');
+        }
+        return await categoriaRepository.update(id, nombre.trim(), descripcion);
+    }
+
 }
 
 export default new CategoriaService();
