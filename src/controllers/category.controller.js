@@ -41,3 +41,19 @@ export const actualizarCategoria = async (req, res) => {
         res.status(500).json({ exito: false, mensaje: 'Error interno del servidor', error: error.message });
     }
 };
+
+export const eliminarCategoria = async (req, res) => {
+    const { id } = req.params;
+    try {
+        await categoriaService.eliminarCategoria(id);
+        res.status(200).json({ exito: true, mensaje: 'Categoría eliminada con éxito' });
+    } catch (error) {
+        if (error.message === 'CATEGORIA_NO_ENCONTRADA') {
+            return res.status(404).json({ exito: false, mensaje: 'Categoría no encontrada' });
+        }
+        if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+            return res.status(400).json({ exito: false, mensaje: 'No se puede eliminar la categoría porque tiene contenidos asociados' });
+        }
+        res.status(500).json({ exito: false, mensaje: 'Error interno del servidor', error: error.message });
+    }
+};
