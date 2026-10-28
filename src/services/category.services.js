@@ -21,6 +21,14 @@ class CategoriaService {
         return await categoriaRepository.update(id, nombre.trim(), descripcion);
     }
 
+    async EliminarCategoria(id) {
+        const existe = await categoriaRepository.findById(id);
+        if (!existe) {
+            throw new Error('CATEGORIA_NO_ENCONTRADA');
+        }
+        return await categoriaRepository.EliminarCategoria(id);
+    }
+
 }
 
 export default new CategoriaService();
