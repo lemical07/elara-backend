@@ -1,8 +1,9 @@
+import express from 'express'
+import 'dotenv/config';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from '../docs/swagger.js';
 
-import express from "express";
-import "dotenv/config";
-import swaggerUi from "swagger-ui-express";
-import swaggerSpec from "../docs/swagger.js";
+import { rutaNoEncontrada, manejarError } from './middleware/error.middleware.js';
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3000;
@@ -23,20 +24,9 @@ app.get("/health", (req, res) => {
 
 // demás rutas
 
-// rutas inexistentes
-app.use((req, res) => {
-    res.status(404).json({mensaje: "Ruta no encontrada"});
-});
 
-// manejo de errores
-function manejadorErrores(err, req, res, next) {
-    res.status(err.statusCode || 500).json({
-        mensaje: err.message || "Error interno del servidor",
-        errores: err.details || null
-    });
-}
-
-app.use(manejadorErrores);
+app.use(rutaNoEncontrada);// rutas inexistentes
+app.use(manejarError);//manejo de errores
 
 // iniciar servidor
 app.listen(PORT, "0.0.0.0", () => {
