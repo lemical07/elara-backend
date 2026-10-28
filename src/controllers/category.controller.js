@@ -24,3 +24,20 @@ export const crearCategoria = async (req, res) => {
         res.status(500).json({ exito: false, mensaje: 'Error interno del servidor', error: error.message });
     }
 };
+
+export const actualizarCategoria = async (req, res) => {
+    const { id } = req.params;
+    const { nombre, descripcion } = req.body;
+    try {
+        await categoriaService.ActualizarCategoria(id, nombre, descripcion);
+        res.status(200).json({ exito: true, mensaje: 'Categoría actualizada con éxito' });
+    } catch (error) {
+        if (error.message === 'CATEGORIA_NO_ENCONTRADA') {
+            return res.status(404).json({ exito: false, mensaje: 'Categoría no encontrada' });
+        }
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ exito: false, mensaje: 'El nombre de la categoría ya está en uso' });
+        }
+        res.status(500).json({ exito: false, mensaje: 'Error interno del servidor', error: error.message });
+    }
+};
