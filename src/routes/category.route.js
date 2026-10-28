@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import {
-    ObtenerCategorias,
-    CrearCategoria,
-    ActualizarCategoria,
-    EliminarCategoria
-} from '../controllers/categoria.controller.js';
+    obtenerCategorias,
+    crearCategoria,
+    actualizarCategoria,
+    eliminarCategoria
+} from '../controllers/category.controller.js';
 import { verificarToken, verificarAdmin } from '../middleware/auth.middleware.js';
 
 const router = Router();
