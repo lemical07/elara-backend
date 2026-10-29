@@ -19,7 +19,7 @@ export class ContenidoPublicoRespuestaDto {
 
     // Setters
     set titulo(nuevoTitulo) {this.#titulo = nuevoTitulo; };
-    set categoria(nuevaCategoria) { this.#categoria = nuevaCategoria;};
+    set categoria(nuevaCategoria) { this.#categoria = nuevaCategoria};
     set anioLanzamiento(nuevoAnio) {this.#anioLanzamiento = nuevoAnio };
     set tipo(nuevoTipo) {this.#tipo = nuevoTipo};
 
