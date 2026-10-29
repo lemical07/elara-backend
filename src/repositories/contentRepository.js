@@ -18,5 +18,17 @@ export class ContentRepository {
             [contentId]
         );
         return rows;
+    
+    }
+
+    async findApproved() {
+        const [rows] = await pool.execute(
+            `SELECT c.id, c.titulo, c.tipo, c.anio, cat.nombre AS categoria_nombre 
+             FROM contenido c 
+             JOIN categoria cat ON c.categoria_id = cat.id 
+             WHERE c.estado = 'aprobado' 
+             ORDER BY c.anio DESC`
+        );
+        return rows;
     }
 }
