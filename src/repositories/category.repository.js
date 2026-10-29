@@ -1,7 +1,7 @@
 import pool from '../config/db.js';
 
 class CategoriaRepository {
-    async listarCatetgorias() {
+    async listarCategorias() {
         const [rows] = await pool.query('SELECT id, nombre, descripcion FROM categoria');
         return rows;
     }
