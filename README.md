@@ -72,6 +72,49 @@ Después, abre `.env` y configura los valores necesarios para el entorno que uti
 
 > El archivo `.env` contiene configuración local y credenciales. No debe subirse al repositorio.
 
+## Autenticación
+
+La API utiliza JWT. Configura `JWT_SECRET` en `.env` con un valor secreto propio y `JWT_EXPIRES_IN` con una duración como `1h`. La base de datos debe estar creada con `database/ddl/schema.sql` y los roles inicializados con `database/dml/insert.sql`.
+
+Con el servidor ejecutándose en `http://localhost:3000`, prueba estos endpoints en Postman:
+
+### Registrar usuario
+
+`POST /api/auth/register` — Body, tipo **raw / JSON**:
+
+```json
+{
+  "nombre": "Ana",
+  "apellido": "Pérez",
+  "correo": "ana@example.com",
+  "contrasena": "ClaveSegura123"
+}
+```
+
+El endpoint crea una cuenta con rol `Usuario`, cifra la contraseña y responde con el usuario y un token. No envíes `rol_id`: el cliente no puede asignarse permisos de administrador.
+
+### Iniciar sesión
+
+`POST /api/auth/login` — Body, tipo **raw / JSON**:
+
+```json
+{
+  "correo": "ana@example.com",
+  "contrasena": "ClaveSegura123"
+}
+```
+
+### Verificar el token y obtener el usuario actual
+
+`GET /api/auth/me` — En Postman, en **Authorization**, selecciona **Bearer Token** y pega el `token` que devolvió el registro o el inicio de sesión.
+
+El registro responde `201`, el inicio de sesión `200`; credenciales incorrectas responden `401` y un correo ya registrado responde `409`.
+
+### Rutas del catálogo y autorización
+
+- `GET /api/categorias` y `GET /api/contenidos/:id` son rutas de consulta.
+- `POST /api/categorias`, `PUT /api/categorias/:id` y `DELETE /api/categorias/:id` requieren un Bearer Token de un usuario cuyo rol actual en MySQL sea `admin` o `Administrador`.
+
 ## Configuración de variables de entorno
 
 El proyecto utiliza variables de entorno para separar la configuración del código fuente.

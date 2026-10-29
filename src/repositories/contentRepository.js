@@ -1,4 +1,4 @@
-import { pool } from '../config/database.js';
+import pool from '../config/db.js';
 
 export class ContentRepository {
     async findById(id) {

@@ -1,4 +1,4 @@
-import pool from '../config/database.js';
+import pool from '../config/db.js';
 
 class CategoriaRepository {
     async listarCatetgorias() {

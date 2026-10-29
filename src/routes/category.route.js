@@ -8,7 +8,7 @@ import {
 import { verificarToken, verificarAdmin } from '../middleware/auth.middleware.js';
 
 const router = Router();
-router.get('/', ObtenerCategorias);
+router.get('/', obtenerCategorias);
 
 // Endpoints protegidos exclusivamente para Administradores
 router.post('/', verificarToken, verificarAdmin, crearCategoria);
