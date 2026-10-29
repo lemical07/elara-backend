@@ -1,5 +1,5 @@
 
-import pool from "../config/database.js";
+import pool from "../config/db.js";
 
 class UsuarioRepository {
     async crear({rol_id, nombre, apellido, correo, contrasena}) {
@@ -31,8 +31,34 @@ class UsuarioRepository {
 
     async buscarPorCorreo(correo) {
         const [filas] = await pool.execute(
-            `SELECT id, rol_id, nombre, apellido, correo, contrasena, activo FROM usuario WHERE correo = ?`,
+            `SELECT u.id, u.rol_id, u.nombre, u.apellido, u.correo, u.contrasena, u.activo,
+                    r.nombre_rol
+             FROM usuario u
+             INNER JOIN rol r ON r.id = u.rol_id
+             WHERE u.correo = ?`,
             [correo]
+        );
+        return filas[0] ?? null;
+    }
+
+    async buscarPorIdConRol(id) {
+        const [filas] = await pool.execute(
+            `SELECT u.id, u.rol_id, u.nombre, u.apellido, u.correo, u.activo, r.nombre_rol
+             FROM usuario u
+             INNER JOIN rol r ON r.id = u.rol_id
+             WHERE u.id = ?`,
+            [id]
+        );
+        return filas[0] ?? null;
+    }
+
+    async buscarRolPorNombre(nombreRol) {
+        const [filas] = await pool.execute(
+            `SELECT id, nombre_rol
+             FROM rol
+             WHERE LOWER(nombre_rol) = LOWER(?)
+             LIMIT 1`,
+            [nombreRol]
         );
         return filas[0] ?? null;
     }

@@ -1,52 +1,68 @@
-import jwt from 'jsonwebtoken';
-import pool from '../config/database.js';
+import passport from '../config/passport.js';
 
+export function autenticarLocal(req, res, next) {
+    passport.authenticate('local', { session: false }, (error, usuario, info) => {
+        if (error) {
+            return next(error);
+        }
 
-export const verificarToken = async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; 
-
-    if (!token) {
-        return res.status(401).json({ 
-            exito: false, 
-            mensaje: 'Acceso denegado. Token de autenticación no proporcionado.' 
-        });
-    }
-
-    try {
-        const secreto = process.env.JWT_SECRET || 'secreto_elara_jwt';
-        const decoded = jwt.verify(token, secreto);
-
-        const [rows] = await pool.query(
-            `SELECT u.id, u.correo, u.activo, r.nombre_rol 
-             FROM usuario u 
-             INNER JOIN rol r ON u.rol_id = r.id 
-             WHERE u.id = ?`,
-            [decoded.id]
-        );
-        if (rows.length === 0 || !rows[0].activo) {
-            return res.status(401).json({ 
-                exito: false, 
-                mensaje: 'El usuario asociado al token no existe o se encuentra inactivo.' 
+        if (!usuario) {
+            return res.status(401).json({
+                exito: false,
+                mensaje: info?.message || 'Correo o contraseña incorrectos.'
             });
         }
-        req.usuario = rows[0];
-        next();
-    } catch (error) {
-        return res.status(403).json({ 
-            exito: false, 
-            mensaje: 'Token inválido o expirado.', 
-            error: error.message 
-        });
-    }
-};
 
-export const verificarAdmin = (req, res, next) => {
-    if (!req.usuario || req.usuario.nombre_rol !== 'Administrador') {
-        return res.status(403).json({ 
-            exito: false, 
-            mensaje: 'Acceso prohibido. Se requieren privilegios de Administrador.' 
+        req.user = usuario;
+        return next();
+    })(req, res, next);
+}
+
+export function autenticarJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !/^Bearer\s+\S+$/i.test(authHeader)) {
+        return res.status(401).json({
+            exito: false,
+            mensaje: 'Debes enviar el token en el encabezado Authorization: Bearer <token>.'
         });
     }
-    next();
-};
+
+    passport.authenticate('jwt', { session: false }, (error, usuario, info) => {
+        if (error) {
+            return next(error);
+        }
+
+        if (!usuario) {
+            return res.status(401).json({
+                exito: false,
+                mensaje: info?.message || 'Token inválido, expirado o asociado a un usuario inactivo.'
+            });
+        }
+
+        req.user = usuario;
+        return next();
+    })(req, res, next);
+}
+
+export function autorizarAdmin(req, res, next) {
+    const usuario = req.user;
+    if (!usuario) {
+        return res.status(401).json({
+            exito: false,
+            mensaje: 'Debes autenticarte para acceder a este recurso.'
+        });
+    }
+
+    const rolActual = usuario.nombre_rol?.trim().toLowerCase();
+    if (rolActual !== 'admin' && rolActual !== 'administrador') {
+        return res.status(403).json({
+            exito: false,
+            mensaje: 'Acceso prohibido. Se requieren privilegios de administrador.'
+        });
+    }
+
+    return next();
+}
+
+export const verificarToken = autenticarJWT;
+export const verificarAdmin = autorizarAdmin;
