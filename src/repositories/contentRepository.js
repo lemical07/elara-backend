@@ -23,7 +23,9 @@ export class ContentRepository {
 
     async findApproved() {
         const [rows] = await pool.execute(
-            `SELECT c.id, c.titulo, c.tipo, c.anio, cat.nombre AS categoria_nombre 
+            `SELECT c.id, c.titulo, c.descripcion, c.tipo, c.anio, c.director,
+                    c.url_imagen, c.url_trailer, c.estado,
+                    cat.nombre AS categoria_nombre
              FROM contenido c 
              JOIN categoria cat ON c.categoria_id = cat.id 
              WHERE c.estado = 'aprobado' 
