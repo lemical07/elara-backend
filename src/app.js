@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.routes.js';
 import categoryRoutes from './routes/category.route.js';
 import contentRoutes from './routes/contentRoutes.js';
 import userRoutes from './routes/user.routes.js';
+import reviewRoutes from './routes/review.routes.js';
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3000;
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', userRoutes);
 app.use('/api/categorias', categoryRoutes);
 app.use('/api/contenidos', contentRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // doc. Swagger
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
