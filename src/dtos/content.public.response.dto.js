@@ -11,13 +11,11 @@ export class ContenidoPublicoRespuestaDto {
         this.#tipo = contenido.tipo; 
     }
 
-    // Getters
     get titulo() {return this.#titulo};
     get categoria() {return this.#categoria};
     get anioLanzamiento() {return this.#anioLanzamiento};
     get tipo() {return this.#tipo};
 
-    // Setters
     set titulo(nuevoTitulo) {this.#titulo = nuevoTitulo; };
     set categoria(nuevaCategoria) { this.#categoria = nuevaCategoria};
     set anioLanzamiento(nuevoAnio) {this.#anioLanzamiento = nuevoAnio };
