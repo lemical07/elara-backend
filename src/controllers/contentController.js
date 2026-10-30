@@ -32,3 +32,20 @@ export class ContentController {
         }
     };
 }
+
+const contenidoServicio = new ContentService();
+
+export const obtenerCatalogoPublicoControlador = async (req, res, next) => {
+    try {
+        const { categoria } = req.query; 
+        const catalogo = await contenidoServicio.obtenerCatalogoPublico(categoria);
+        
+        return res.status(200).json({
+            exito: true,
+            total: catalogo.length,
+            datos: catalogo
+        });
+    } catch (error) {
+        next(error);
+    }
+};
