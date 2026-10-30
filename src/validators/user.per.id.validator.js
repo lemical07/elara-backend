@@ -1,8 +1,8 @@
-import { body } from 'express-validator';
+import { param } from 'express-validator';
 
-const UsuarioBusacarPoRIdValidaciones =[
+const UsuarioBuscarPorIdValidaciones = [
     param("id")
         .isInt({ min: 1 }).withMessage("El ID debe ser un entero positivo.")
 ];
 
-export default UsuarioBusacarPoRIdValidaciones;
+export default UsuarioBuscarPorIdValidaciones;
