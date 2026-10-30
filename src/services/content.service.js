@@ -7,22 +7,10 @@ export class ContentService {
         this.contentRepository = new ContentRepository();
     }
 
-<<<<<<< HEAD:src/services/contentService.js
-    async getApprovedContent() {
-        const content = await this.contentRepository.findApproved();
-        return content.map(item => new ContentResponseDto(item));
-    }
-
-    async getContentDetail(id) {
-        const content = await this.contentRepository.findById(id);
-=======
     async obtenerDetalleProducto(id) {
         const content = await this.contentRepository.listarPerId(id);
->>>>>>> feature/services:src/services/content.service.js
         if (!content) {
-            const error = new Error('Contenido no encontrado');
-            error.status = 404;
-            throw error;
+            throw new Error('Contenido no encontrado');
         }
 
         const characters = await this.contentRepository.listarPersonajePerContenidoId(id);
