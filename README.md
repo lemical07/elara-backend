@@ -158,6 +158,32 @@ Las respuestas no incluyen contraseñas ni hashes. Las cuentas se desactivan ló
 7. `DELETE /api/usuarios/me` responde `200`; reutilizar el token después debe responder `401`.
 8. Desactivar la última cuenta `Admin` activa responde `409`.
 
+## Reseñas y calificaciones
+
+Las reseñas corresponden a contenido aprobado. La API no expone el correo del autor ni acepta que el cliente indique el usuario propietario; las rutas privadas usan el usuario del JWT.
+
+| Método | Endpoint | Acceso | Función |
+|---|---|---|---|
+| `POST` | `/api/reviews` | JWT | Crear una reseña |
+| `GET` | `/api/reviews/contenido/:contenidoId` | Público | Listar reseñas de contenido aprobado |
+| `GET` | `/api/reviews/:id` | Público | Consultar una reseña visible |
+| `GET` | `/api/reviews/mis-reviews` | JWT | Consultar mis reseñas de contenido aprobado |
+| `PUT` | `/api/reviews/:id` | JWT, solo autor | Actualizar título, comentario y/o calificación |
+| `DELETE` | `/api/reviews/:id` | JWT, solo autor | Eliminar una reseña; responde `204` |
+
+Ejemplo para `POST /api/reviews`:
+
+```json
+{
+  "contenido_id": 1,
+  "titulo": "Muy recomendable",
+  "comentario": "Una historia excelente.",
+  "calificacion": 9
+}
+```
+
+El título es obligatorio y admite hasta 25 caracteres; el comentario es opcional; la calificación debe ser un entero de 1 a 10. Cada usuario puede crear una reseña por contenido. Los duplicados responden `409`, incluyendo colisiones concurrentes protegidas por la restricción `UNIQUE` de MySQL. Las fechas las genera y actualiza MySQL. La API responde `403` al intentar modificar o eliminar la reseña de otra persona y `404` para reseñas o contenido que no sean visibles.
+
 ## Configuración de variables de entorno
 
 El proyecto utiliza variables de entorno para separar la configuración del código fuente.
