@@ -115,6 +115,49 @@ El registro responde `201`, el inicio de sesión `200`; credenciales incorrectas
 - `GET /api/categorias` y `GET /api/contenidos/:id` son rutas de consulta.
 - `POST /api/categorias`, `PUT /api/categorias/:id` y `DELETE /api/categorias/:id` requieren un Bearer Token de un usuario cuyo rol actual en MySQL sea `admin` o `Administrador`.
 
+## Perfil y administración de usuarios
+
+Las rutas de perfil requieren `Authorization: Bearer <token>` obtenido al iniciar sesión. La identidad siempre se toma del JWT validado.
+
+### Perfil propio
+
+- `GET /api/usuarios/me`: consulta el perfil público.
+- `PUT /api/usuarios/me`: actualiza uno o más de `nombre`, `apellido` y `correo`.
+- `PATCH /api/usuarios/me/contrasena`: cambia la contraseña enviando:
+
+```json
+{
+  "contrasena_actual": "ClaveActual123",
+  "contrasena_nueva": "ClaveNueva456"
+}
+```
+
+- `DELETE /api/usuarios/me`: desactiva la cuenta. La cuenta y sus reseñas/reacciones se conservan; una cuenta inactiva ya no puede usar rutas protegidas.
+
+Los endpoints de perfil no aceptan cambios de `id`, `rol_id`, `activo` ni `contrasena`. Si el correo ya está registrado, la API responde `409`.
+
+### Administración de usuarios
+
+Estas rutas requieren un token válido y el rol actual `Admin` o `Administrador` en MySQL:
+
+- `GET /api/usuarios`: lista los perfiles públicos.
+- `GET /api/usuarios/:id`: consulta un perfil.
+- `PATCH /api/usuarios/:id`: actualiza `nombre`, `apellido` y/o `correo`; no permite modificar roles.
+- `PATCH /api/usuarios/:id/estado`: cambia el estado con `{"activo": true}` o `{"activo": false}`. La API impide desactivar la última cuenta administradora activa.
+
+Las respuestas no incluyen contraseñas ni hashes. Las cuentas se desactivan lógicamente porque el esquema vincula usuarios con contenidos, reseñas y reacciones.
+
+### Casos rápidos en Postman
+
+1. Sin token, `GET /api/usuarios/me` debe responder `401`.
+2. Con token de usuario, `GET /api/usuarios/me` responde `200` sin `contrasena` ni `rol_id`.
+3. `PUT /api/usuarios/me` con `{"nombre":"Nuevo nombre"}` responde `200`; con `{"rol_id":1}` responde `400`.
+4. Actualizar a un correo usado por otra cuenta responde `409`.
+5. Cambiar contraseña con la actual correcta responde `200`; con una incorrecta responde `401`.
+6. Un usuario normal recibe `403` en `GET /api/usuarios`; un administrador puede listar usuarios sin hashes.
+7. `DELETE /api/usuarios/me` responde `200`; reutilizar el token después debe responder `401`.
+8. Desactivar la última cuenta `Admin` activa responde `409`.
+
 ## Configuración de variables de entorno
 
 El proyecto utiliza variables de entorno para separar la configuración del código fuente.
@@ -395,3 +438,12 @@ La base inicial de ELARA Backend está preparada para continuar el desarrollo.
 ## Licencia
 
 El proyecto utiliza la licencia definida en `package.json`. Si se mantiene como `UNLICENSED`, se considera un proyecto privado que no concede una licencia pública de uso.
+
+## Endpoints del catálogo
+
+- `GET /api/categorias`: lista las categorías.
+- `POST /api/categorias`: crea una categoría; requiere token de administrador.
+- `PUT /api/categorias/:id`: actualiza una categoría; requiere token de administrador.
+- `DELETE /api/categorias/:id`: elimina una categoría sin contenidos asociados; requiere token de administrador.
+- `GET /api/contenidos`: lista los contenidos aprobados.
+- `GET /api/contenidos/:id`: consulta el detalle de un contenido aprobado.
