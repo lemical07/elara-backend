@@ -13,8 +13,10 @@ class UsuarioRepository {
 
     async obtenerTodos() {
         const [filas] = await pool.execute(
-            `SELECT id, rol_id, nombre, apellido, correo, activo
-             FROM usuario`
+            `SELECT u.id, u.rol_id, u.nombre, u.apellido, u.correo, u.activo, r.nombre_rol
+             FROM usuario u
+             INNER JOIN rol r ON r.id = u.rol_id
+             ORDER BY u.id`
         );
 
         return filas;
@@ -22,10 +24,23 @@ class UsuarioRepository {
 
     async buscarPorId(id) {
         const [filas] = await pool.execute(
-            `SELECT id, rol_id, nombre, apellido, correo, activo FROM usuario WHERE id = ?`,
+            `SELECT u.id, u.rol_id, u.nombre, u.apellido, u.correo, u.activo, r.nombre_rol
+             FROM usuario u
+             INNER JOIN rol r ON r.id = u.rol_id
+             WHERE u.id = ?`,
             [id]
         );
 
+        return filas[0] ?? null;
+    }
+
+    async buscarPorIdConContrasena(id) {
+        const [filas] = await pool.execute(
+            `SELECT id, contrasena, activo
+             FROM usuario
+             WHERE id = ?`,
+            [id]
+        );
         return filas[0] ?? null;
     }
 
@@ -63,30 +78,81 @@ class UsuarioRepository {
         return filas[0] ?? null;
     }
 
-    async actualizar(id, { rol_id, nombre, apellido, correo}) {
-        const [resultado] = await pool.execute(
-            `UPDATE usuario SET rol_id = ?, nombre = ?, apellido = ?, correo = ? WHERE id = ?`,
-            [rol_id, nombre, apellido, correo, id]
+    async actualizar(id, { nombre, apellido, correo }) {
+        await pool.execute(
+            `UPDATE usuario SET nombre = ?, apellido = ?, correo = ? WHERE id = ?`,
+            [nombre, apellido, correo, id]
         );
-
-        if (resultado.affectedRows === 0) {
-            return null;
-        }
-
         return this.buscarPorId(id);
     }
 
-    async actualizarEstado(id, activo) {
+    async actualizarContrasena(id, contrasena) {
         const [resultado] = await pool.execute(
-            `UPDATE usuario SET activo = ? WHERE id = ?`,
-            [activo, id]
+            `UPDATE usuario SET contrasena = ? WHERE id = ?`,
+            [contrasena, id]
         );
+        return resultado.affectedRows > 0;
+    }
 
-        if (resultado.affectedRows === 0) {
-            return null;
+    async actualizarEstado(id, activo) {
+        const conexion = await pool.getConnection();
+        let transaccionIniciada = false;
+
+        try {
+            await conexion.beginTransaction();
+            transaccionIniciada = true;
+
+            const [usuarios] = await conexion.execute(
+                `SELECT u.id, u.activo, r.nombre_rol
+                 FROM usuario u
+                 INNER JOIN rol r ON r.id = u.rol_id
+                 WHERE u.id = ?
+                 FOR UPDATE`,
+                [id]
+            );
+            const usuario = usuarios[0];
+            if (!usuario) {
+                await conexion.rollback();
+                transaccionIniciada = false;
+                return null;
+            }
+
+            const esAdmin = ['admin', 'administrador'].includes(usuario.nombre_rol.trim().toLowerCase());
+            if (!activo && usuario.activo && esAdmin) {
+                const [administradoresActivos] = await conexion.execute(
+                    `SELECT u.id
+                     FROM usuario u
+                     INNER JOIN rol r ON r.id = u.rol_id
+                     WHERE u.activo = TRUE
+                       AND LOWER(r.nombre_rol) IN ('admin', 'administrador')
+                     ORDER BY u.id
+                     FOR UPDATE`
+                );
+
+                if (administradoresActivos.length <= 1) {
+                    await conexion.rollback();
+                    transaccionIniciada = false;
+                    const error = new Error('No se puede desactivar la última cuenta administradora activa.');
+                    error.status = 409;
+                    throw error;
+                }
+            }
+
+            await conexion.execute(
+                `UPDATE usuario SET activo = ? WHERE id = ?`,
+                [activo, id]
+            );
+            await conexion.commit();
+            transaccionIniciada = false;
+            return this.buscarPorId(id);
+        } catch (error) {
+            if (transaccionIniciada) {
+                await conexion.rollback();
+            }
+            throw error;
+        } finally {
+            conexion.release();
         }
-
-        return this.buscarPorId(id);
     }
 
     async eliminar(id) {
