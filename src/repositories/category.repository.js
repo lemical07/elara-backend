@@ -5,9 +5,9 @@ class CategoriaRepository {
         const [rows] = await pool.query('SELECT id, nombre, descripcion FROM categoria');
         return rows;
     }
-    async listarCategorriasId (id) {
+    async buscarCategoriaPorId(id) {
         const [rows] = await pool.query('SELECT id, nombre, descripcion FROM categoria WHERE id = ?', [id]);
-        return rows[0];
+        return rows[0] ?? null;
     }
 
     async crearCategoria(nombre, descripcion) {
@@ -30,7 +30,6 @@ class CategoriaRepository {
         const [result] = await pool.query('DELETE FROM categoria WHERE id = ?', [id]);
         return result.affectedRows > 0;
     }
-
-    }
+}
 
 export default new CategoriaRepository();
