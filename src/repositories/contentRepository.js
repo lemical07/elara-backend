@@ -31,4 +31,27 @@ export class ContentRepository {
         );
         return rows;
     }
+
+
+    async buscarAprobados(categoriaFiltro) {
+        let consulta = `
+            SELECT c.title AS titulo, cat.name AS nombre_categoria, c.release_year AS anio_lanzamiento, c.type AS tipo 
+            FROM contents c
+            JOIN categories cat ON c.category_id = cat.id
+            WHERE c.status = 'approved'
+        `;
+        const parametros = [];
+
+        if (categoriaFiltro) {
+            consulta += ` AND cat.name = ?`;
+            parametros.push(categoriaFiltro);
+        }
+
+        consulta += ` ORDER BY c.created_at DESC`;
+
+        const [filas] = await pool.query(consulta, parametros);
+        return filas;
+    }
+
+
 }
