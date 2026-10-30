@@ -1,19 +1,19 @@
-import { ContentRepository } from '../repositories/contentRepository.js';
-import { ContentResponseDto } from '../dtos/contentResponseDto.js';
-import { ContentPublicResponseDto } from '../dtos/contentPublicResponseDto.js';
+import { ContentRepository } from '../repositories/content.repository.js';
+import { ContentResponseDto } from '../dtos/content.response.dto.js';
+import { ContentPublicResponseDto } from '../dtos/content.public.responseDto.js';
 
 export class ContentService {
     constructor() {
         this.contentRepository = new ContentRepository();
     }
 
-    async getContentDetail(id) {
-        const content = await this.contentRepository.findById(id);
+    async obtenerDetalleProducto(id) {
+        const content = await this.contentRepository.listarPerId(id);
         if (!content) {
             throw new Error('Contenido no encontrado');
         }
 
-        const characters = await this.contentRepository.findCharactersByContentId(id);
+        const characters = await this.contentRepository.listarPersonajePerContenidoId(id);
         content.personajes = characters;
 
         return new ContentResponseDto(content);
