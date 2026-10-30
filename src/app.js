@@ -9,6 +9,7 @@ import { rutaNoEncontrada, manejarError } from './middleware/error.middleware.js
 import authRoutes from './routes/auth.routes.js';
 import categoryRoutes from './routes/category.route.js';
 import contentRoutes from './routes/contentRoutes.js';
+import userRoutes from './routes/user.routes.js';
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3000;
@@ -19,6 +20,7 @@ configurarEstrategiasPassport();
 app.use(express.json());
 app.use(passport.initialize());
 app.use('/api/auth', authRoutes);
+app.use('/api/usuarios', userRoutes);
 app.use('/api/categorias', categoryRoutes);
 app.use('/api/contenidos', contentRoutes);
 
