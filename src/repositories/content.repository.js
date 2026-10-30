@@ -1,7 +1,7 @@
 import pool from '../config/db.js';
 
 export class ContentRepository {
-    async findById(id) {
+    async listarPerId(id) {
         const [rows] = await pool.execute(
             `SELECT c.*, cat.nombre AS categoria_nombre 
              FROM contenido c 
@@ -12,7 +12,7 @@ export class ContentRepository {
         return rows[0] || null;
     }
 
-    async findCharactersByContentId(contentId) {
+    async listarPersonajePerContenidoId(contentId) {
         const [rows] = await pool.execute(
             `SELECT nombre, tipo FROM personaje WHERE contenido_id = ?`,
             [contentId]
@@ -21,7 +21,7 @@ export class ContentRepository {
     
     }
 
-    async findApproved() {
+    async listarAprobados() {
         const [rows] = await pool.execute(
             `SELECT c.id, c.titulo, c.descripcion, c.tipo, c.anio, c.director,
                     c.url_imagen, c.url_trailer, c.estado,
@@ -35,12 +35,12 @@ export class ContentRepository {
     }
 
 
-    async buscarAprobados(categoriaFiltro) {
+    async buscarAprobadosPerCatoegorias(categoriaFiltro) {
         let consulta = `
-            SELECT c.title AS titulo, cat.name AS nombre_categoria, c.release_year AS anio_lanzamiento, c.type AS tipo 
+            SELECT c.titulo AS titulo, cat.nombre AS nombre_categoria, c.release_year AS anio_lanzamiento, c.type AS tipo 
             FROM contents c
-            JOIN categories cat ON c.category_id = cat.id
-            WHERE c.status = 'approved'
+            JOIN categoria cat ON c.category_id = cat.id
+            WHERE c.status = 'aprobado'
         `;
         const parametros = [];
 
