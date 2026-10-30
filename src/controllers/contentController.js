@@ -5,6 +5,7 @@ export class ContentController {
         this.contentService = new ContentService();
     }
 
+<<<<<<< HEAD
     getApproved = async (req, res, next) => {
         try {
             const result = await this.contentService.getApprovedContent();
@@ -18,17 +19,27 @@ export class ContentController {
         }
     };
 
+=======
+>>>>>>> feature/services
     getDetail = async (req, res, next) => {
         try {
             const { id } = req.params;
             const result = await this.contentService.getContentDetail(id);
+<<<<<<< HEAD
             return res.status(200).json({
+=======
+            res.status(200).json({
+>>>>>>> feature/services
                 exito: true,
                 mensaje: 'Detalle de contenido obtenido exitosamente',
                 datos: result
             });
         } catch (error) {
+<<<<<<< HEAD
             return next(error);
+=======
+            next(error);
+>>>>>>> feature/services
         }
     };
 }
