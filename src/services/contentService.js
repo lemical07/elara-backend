@@ -1,5 +1,6 @@
 import { ContentRepository } from '../repositories/contentRepository.js';
 import { ContentResponseDto } from '../dtos/contentResponseDto.js';
+import { ContentPublicResponseDto } from '../dtos/contentPublicResponseDto.js';
 
 export class ContentService {
     constructor() {
@@ -23,5 +24,16 @@ export class ContentService {
         content.personajes = characters;
 
         return new ContentResponseDto(content);
+
+        
+    }
+
+    async obtenerCatalogoPublico(categoriaFiltro) {
+        const contenidosCrudos = await contenidoRepositorio.buscarAprobados(categoriaFiltro);
+        
+        return contenidosCrudos.map(item => {
+            const dto = new ContentPublicResponseDto(item);
+            return dto.aJSON();
+        });
     }
 }
