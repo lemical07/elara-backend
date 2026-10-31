@@ -1,12 +1,12 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import usuarioRepository from '../repositories/user.repository.js';
+import usuarioRepositorio from '../repositories/user.repository.js';
 
 const ROL_USUARIO_NOMBRE = 'Usuario';
 
-class AuthService {
-    constructor(repository = usuarioRepository) {
-        this.usuarioRepository = repository;
+class AutenticacionServicio {
+    constructor(repositorio = usuarioRepositorio) {
+        this.usuarioRepositorio = repositorio;
     }
 
     async registrar({ nombre, apellido, correo, contrasena } = {}) {
@@ -33,25 +33,25 @@ class AuthService {
             throw this.crearError('La contraseña debe tener al menos 8 caracteres y un máximo de 72 bytes.', 400);
         }
 
-        const usuarioExistente = await this.usuarioRepository.buscarPorCorreo(datos.correo);
+        const usuarioExistente = await this.usuarioRepositorio.buscarPorCorreo(datos.correo);
         if (usuarioExistente) {
             throw this.crearError('El correo electrónico ya está registrado.', 409);
         }
 
-        const rolUsuario = await this.usuarioRepository.buscarRolPorNombre(ROL_USUARIO_NOMBRE);
+        const rolUsuario = await this.usuarioRepositorio.buscarRolPorNombre(ROL_USUARIO_NOMBRE);
         if (!rolUsuario) {
             throw this.crearError('No está configurado el rol Usuario para registrar cuentas.', 503);
         }
 
         const contrasenaHash = await bcrypt.hash(datos.contrasena, 10);
-        const usuarioCreado = await this.usuarioRepository.crear({
+        const usuarioCreado = await this.usuarioRepositorio.crear({
             rol_id: rolUsuario.id,
             nombre: datos.nombre,
             apellido: datos.apellido,
             correo: datos.correo,
             contrasena: contrasenaHash
         });
-        const usuario = await this.usuarioRepository.buscarPorIdConRol(usuarioCreado.id);
+        const usuario = await this.usuarioRepositorio.buscarPorIdConRol(usuarioCreado.id);
 
         if (!usuario) {
             throw new Error('No fue posible recuperar el usuario recién registrado.');
@@ -88,4 +88,4 @@ class AuthService {
     }
 }
 
-export default AuthService;
+export default AutenticacionServicio;

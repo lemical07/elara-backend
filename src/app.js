@@ -2,16 +2,16 @@ import express from 'express'
 import 'dotenv/config';
 import passport from 'passport';
 import swaggerUi from 'swagger-ui-express';
-import swaggerSpec from '../docs/swagger.js';
+import configuracionSwagger from '../docs/swagger.js';
 
 import { configurarEstrategiasPassport } from './config/passport.js';
 import { rutaNoEncontrada, manejarError } from './middleware/error.middleware.js';
-import authRoutes from './routes/auth.routes.js';
-import categoryRoutes from './routes/category.route.js';
-import contentRoutes from './routes/content.routes.js';
-import userRoutes from './routes/user.routes.js';
-import reviewRoutes from './routes/review.routes.js';
-import reactionRoutes from './routes/reaction.routes.js';
+import rutasAutenticacion from './routes/auth.routes.js';
+import rutasCategoria from './routes/category.route.js';
+import rutasContenido from './routes/content.routes.js';
+import rutasUsuario from './routes/user.routes.js';
+import rutasResena from './routes/review.routes.js';
+import rutasReaccion from './routes/reaction.routes.js';
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3000;
@@ -23,15 +23,15 @@ app.use(express.json());
 app.use(passport.initialize());
 
 // otras rutas
-app.use('/api/auth', authRoutes);
-app.use('/api/usuarios', userRoutes);
-app.use('/api/categorias', categoryRoutes);
-app.use('/api/contenidos', contentRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/reacciones', reactionRoutes);
+app.use('/api/auth', rutasAutenticacion);
+app.use('/api/usuarios', rutasUsuario);
+app.use('/api/categorias', rutasCategoria);
+app.use('/api/contenidos', rutasContenido);
+app.use('/api/reviews', rutasResena);
+app.use('/api/reacciones', rutasReaccion);
 
 // doc. Swagger
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(configuracionSwagger));
 
 // ruta estandar servidor
 app.get("/health", (req, res) => {

@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { AuthController } from '../controllers/auth.controller.js';
+import { AutenticacionControlador } from '../controllers/auth.controller.js';
 import { autenticarJWT, autenticarLocal } from '../middleware/auth.middleware.js';
 
 const router = Router();
-const authController = new AuthController();
+const autenticacionControlador = new AutenticacionControlador();
 
-router.post('/register', authController.registrar);
-router.post('/login', autenticarLocal, authController.iniciarSesion);
-router.get('/me', autenticarJWT, authController.obtenerSesion);
+router.post('/register', autenticacionControlador.registrar);
+router.post('/login', autenticarLocal, autenticacionControlador.iniciarSesion);
+router.get('/me', autenticarJWT, autenticacionControlador.obtenerSesion);
 
 export default router;

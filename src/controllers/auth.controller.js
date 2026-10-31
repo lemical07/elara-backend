@@ -1,13 +1,13 @@
-import AuthService from '../services/auth.service.js';
+import AutenticacionServicio from '../services/auth.service.js';
 
-export class AuthController {
-    constructor(authService = new AuthService()) {
-        this.authService = authService;
+export class AutenticacionControlador {
+    constructor(servicioAutenticacion = new AutenticacionServicio()) {
+        this.servicioAutenticacion = servicioAutenticacion;
     }
 
     registrar = async (req, res, next) => {
         try {
-            const datos = await this.authService.registrar(req.body);
+            const datos = await this.servicioAutenticacion.registrar(req.body);
             return res.status(201).json({
                 exito: true,
                 mensaje: 'Usuario registrado correctamente.',
@@ -22,8 +22,8 @@ export class AuthController {
         try {
             const usuario = req.user;
             const datos = {
-                usuario: this.authService.usuarioPublico(usuario),
-                token: this.authService.crearToken(usuario)
+                usuario: this.servicioAutenticacion.usuarioPublico(usuario),
+                token: this.servicioAutenticacion.crearToken(usuario)
             };
             return res.status(200).json({
                 exito: true,

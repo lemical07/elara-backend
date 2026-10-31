@@ -19,8 +19,8 @@ export function autenticarLocal(req, res, next) {
 }
 
 export function autenticarJWT(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !/^Bearer\s+\S+$/i.test(authHeader)) {
+    const encabezadoAutorizacion = req.headers.authorization;
+    if (!encabezadoAutorizacion || !/^Bearer\s+\S+$/i.test(encabezadoAutorizacion)) {
         return res.status(401).json({
             exito: false,
             mensaje: 'Debes enviar el token en el encabezado Authorization: Bearer <token>.'
