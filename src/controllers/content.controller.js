@@ -1,14 +1,14 @@
-import { ContentService } from '../services/contentService.js';
+import { ContentService } from '../services/content.service.js';
 
 export class ContentController {
     constructor() {
         this.contentService = new ContentService();
     }
 
-    getDetail = async (req, res, next) => {
+    obtenerDetalleProducto = async (req, res, next) => {
         try {
             const { id } = req.params;
-            const result = await this.contentService.getContentDetail(id);
+            const result = await this.contentService.obtenerDetalleProducto(id);
             res.status(200).json({
                 exito: true,
                 mensaje: 'Detalle de contenido obtenido exitosamente',
