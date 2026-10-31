@@ -37,10 +37,10 @@ export class ContentRepository {
 
     async buscarAprobadosPerCatoegorias(categoriaFiltro) {
         let consulta = `
-            SELECT c.titulo AS titulo, cat.nombre AS nombre_categoria, c.release_year AS anio_lanzamiento, c.type AS tipo 
-            FROM contents c
-            JOIN categoria cat ON c.category_id = cat.id
-            WHERE c.status = 'aprobado'
+             SELECT c.titulo AS titulo, cat.nombre AS nombre_categoria, c.anio AS anio_lanzamiento, c.tipo AS tipo 
+            FROM contenido c
+            JOIN categoria cat ON c.id = cat.id
+            WHERE c.estado = 'aprobado';
         `;
         const parametros = [];
 
