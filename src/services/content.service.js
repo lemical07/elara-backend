@@ -1,6 +1,6 @@
 import { ContentRepository } from '../repositories/content.repository.js';
 import { ContentResponseDto } from '../dtos/content.response.dto.js';
-import { ContentPublicResponseDto } from '../dtos/content.public.responseDto.js';
+import { ContentPublicResponseDto } from '../dtos/content.public.response.dto.js';
 
 export class ContentService {
     constructor() {

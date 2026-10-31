@@ -8,7 +8,7 @@ import { configurarEstrategiasPassport } from './config/passport.js';
 import { rutaNoEncontrada, manejarError } from './middleware/error.middleware.js';
 import authRoutes from './routes/auth.routes.js';
 import categoryRoutes from './routes/category.route.js';
-import contentRoutes from './routes/contentRoutes.js';
+import contentRoutes from './routes/content.routes.js';
 import userRoutes from './routes/user.routes.js';
 import reviewRoutes from './routes/review.routes.js';
 
