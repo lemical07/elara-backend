@@ -184,6 +184,29 @@ Ejemplo para `POST /api/reviews`:
 
 El título es obligatorio y admite hasta 25 caracteres; el comentario es opcional; la calificación debe ser un entero de 1 a 10. Cada usuario puede crear una reseña por contenido. Los duplicados responden `409`, incluyendo colisiones concurrentes protegidas por la restricción `UNIQUE` de MySQL. Las fechas las genera y actualiza MySQL. La API responde `403` al intentar modificar o eliminar la reseña de otra persona y `404` para reseñas o contenido que no sean visibles.
 
+## Reacciones
+
+Las reacciones se pueden registrar únicamente en reseñas de contenido aprobado. La identidad del usuario se toma del JWT; no se acepta `usuario_id` en el body. Cada usuario tiene como máximo una reacción por reseña, garantizado por la restricción `UNIQUE` de MySQL. Repetir el mismo tipo no genera otra fila; enviar el tipo contrario actualiza la reacción existente. No se permite reaccionar a la propia reseña.
+
+| Método | Endpoint | Acceso | Función |
+|---|---|---|---|
+| `POST` | `/api/reacciones` | JWT | Crear una reacción o cambiar su tipo |
+| `PUT` | `/api/reacciones/:reviewId` | JWT | Cambiar el tipo de una reacción propia existente |
+| `DELETE` | `/api/reacciones/:reviewId` | JWT | Retirar la reacción propia; responde `204` |
+| `GET` | `/api/reacciones/review/:reviewId` | Público | Consultar totales de likes y dislikes de una reseña visible |
+| `GET` | `/api/reacciones/mis-reacciones` | JWT | Listar las reacciones propias sobre reseñas visibles |
+
+Ejemplo para `POST /api/reacciones`:
+
+```json
+{
+  "review_id": 12,
+  "tipo": "like"
+}
+```
+
+El tipo solo puede ser `like` o `dislike`. El alta responde `201`; los cambios o reintentos sin cambios responden `200`. Las consultas de totales devuelven cero para ambos tipos cuando la reseña visible no tiene reacciones. La API no almacena contadores redundantes ni implementa ranking o popularidad.
+
 ## Configuración de variables de entorno
 
 El proyecto utiliza variables de entorno para separar la configuración del código fuente.
