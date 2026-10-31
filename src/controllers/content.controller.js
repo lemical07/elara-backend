@@ -1,18 +1,18 @@
-import { ContentService } from '../services/content.service.js';
+import { ContenidoServicio } from '../services/content.service.js';
 
-export class ContentController {
+export class ContenidoControlador {
     constructor() {
-        this.contentService = new ContentService();
+        this.contenidoServicio = new ContenidoServicio();
     }
 
-    obtenerDetalleProducto = async (req, res, next) => {
+    obtenerDetalle = async (req, res, next) => {
         try {
             const { id } = req.params;
-            const result = await this.contentService.obtenerDetalleProducto(id);
+            const resultado = await this.contenidoServicio.obtenerDetalle(id);
             res.status(200).json({
                 exito: true,
                 mensaje: 'Detalle de contenido obtenido exitosamente',
-                datos: result
+                datos: resultado
             });
         } catch (error) {
             next(error);
@@ -20,11 +20,11 @@ export class ContentController {
     };
 }
 
-const contenidoServicio = new ContentService();
+const contenidoServicio = new ContenidoServicio();
 
-export const obtenerCatalogoPublicoControlador = async (req, res, next) => {
+export const obtenerCatalogoPublico = async (req, res, next) => {
     try {
-        const { categoria } = req.query; 
+        const { categoria } = req.query;
         const catalogo = await contenidoServicio.obtenerCatalogoPublico(categoria);
         
         return res.status(200).json({

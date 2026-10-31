@@ -1,32 +1,32 @@
-import { ContentRepository } from '../repositories/content.repository.js';
-import { ContentResponseDto } from '../dtos/content.response.dto.js';
-import { ContentPublicResponseDto } from '../dtos/content.public.response.dto.js';
+import { ContenidoRepositorio } from '../repositories/content.repository.js';
+import { ContenidoObtenerDTO } from '../dtos/content.response.dto.js';
+import { ContenidoPublicoDTO } from '../dtos/content.public.response.dto.js';
 
-export class ContentService {
+export class ContenidoServicio {
     constructor() {
-        this.contentRepository = new ContentRepository();
+        this.contenidoRepositorio = new ContenidoRepositorio();
     }
 
-    async obtenerDetalleProducto(id) {
-        const content = await this.contentRepository.listarPerId(id);
-        if (!content) {
+    async obtenerDetalle(id) {
+        const contenido = await this.contenidoRepositorio.buscarPorId(id);
+        if (!contenido) {
             throw new Error('Contenido no encontrado');
         }
 
-        const characters = await this.contentRepository.listarPersonajePerContenidoId(id);
-        content.personajes = characters;
+        const personajes = await this.contenidoRepositorio.listarPersonajesPorContenidoId(id);
+        contenido.personajes = personajes;
 
-        return new ContentResponseDto(content);
+        return new ContenidoObtenerDTO(contenido).data;
 
         
     }
 
     async obtenerCatalogoPublico(categoriaFiltro) {
-        const contenidosCrudos = await contenidoRepositorio.buscarAprobados(categoriaFiltro);
+        const contenidosCrudos = await this.contenidoRepositorio.listarAprobadosPorCategoria(categoriaFiltro);
         
-        return contenidosCrudos.map(item => {
-            const dto = new ContentPublicResponseDto(item);
-            return dto.aJSON();
+        return contenidosCrudos.map(contenido => {
+            const dto = new ContenidoPublicoDTO(contenido);
+            return dto.data;
         });
     }
 }

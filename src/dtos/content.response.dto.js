@@ -1,4 +1,4 @@
-export class ContentResponseDto {
+export class ContenidoObtenerDTO {
     #id;
     #titulo;
     #descripcion;
@@ -11,18 +11,18 @@ export class ContentResponseDto {
     #estado;
     #personajes;
 
-    constructor(content) {
-        this.#id = content.id;
-        this.#titulo = content.titulo;
-        this.#descripcion = content.descripcion;
-        this.#anio = content.anio;
-        this.#tipo = content.tipo;
-        this.#categoria = content.categoria_nombre;
-        this.#director = content.director;
-        this.#urlImagen = content.url_imagen;
-        this.#urlTrailer = content.url_trailer;
-        this.#estado = content.estado;
-        this.#personajes = content.personajes || [];
+    constructor(contenido) {
+        this.#id = contenido.id;
+        this.#titulo = contenido.titulo;
+        this.#descripcion = contenido.descripcion;
+        this.#anio = contenido.anio;
+        this.#tipo = contenido.tipo;
+        this.#categoria = contenido.categoria_nombre;
+        this.#director = contenido.director;
+        this.#urlImagen = contenido.url_imagen;
+        this.#urlTrailer = contenido.url_trailer;
+        this.#estado = contenido.estado;
+        this.#personajes = contenido.personajes || [];
     }
 
     get id() { return this.#id; }
@@ -37,15 +37,31 @@ export class ContentResponseDto {
     get estado() { return this.#estado; }
     get personajes() { return this.#personajes; }
 
-    set id(value) { this.#id = value; }
-    set titulo(value) { this.#titulo = value; }
-    set descripcion(value) { this.#descripcion = value; }
-    set anio(value) { this.#anio = value; }
-    set tipo(value) { this.#tipo = value; }
-    set categoria(value) { this.#categoria = value; }
-    set director(value) { this.#director = value; }
-    set urlImagen(value) { this.#urlImagen = value; }
-    set urlTrailer(value) { this.#urlTrailer = value; }
-    set estado(value) { this.#estado = value; }
-    set personajes(value) { this.#personajes = value; }
+    set id(id) { this.#id = id; }
+    set titulo(titulo) { this.#titulo = titulo; }
+    set descripcion(descripcion) { this.#descripcion = descripcion; }
+    set anio(anio) { this.#anio = anio; }
+    set tipo(tipo) { this.#tipo = tipo; }
+    set categoria(categoria) { this.#categoria = categoria; }
+    set director(director) { this.#director = director; }
+    set urlImagen(urlImagen) { this.#urlImagen = urlImagen; }
+    set urlTrailer(urlTrailer) { this.#urlTrailer = urlTrailer; }
+    set estado(estado) { this.#estado = estado; }
+    set personajes(personajes) { this.#personajes = personajes; }
+
+    get data() {
+        return {
+            id: this.#id,
+            titulo: this.#titulo,
+            descripcion: this.#descripcion,
+            anio: this.#anio,
+            tipo: this.#tipo,
+            categoria: this.#categoria,
+            director: this.#director,
+            urlImagen: this.#urlImagen,
+            urlTrailer: this.#urlTrailer,
+            estado: this.#estado,
+            personajes: this.#personajes
+        };
+    }
 }

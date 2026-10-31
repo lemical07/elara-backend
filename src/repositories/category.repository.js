@@ -1,35 +1,35 @@
 import pool from '../config/db.js';
 
-class CategoriaRepository {
+class CategoriaRepositorio {
     async listarCategorias() {
-        const [rows] = await pool.query('SELECT id, nombre, descripcion FROM categoria');
-        return rows;
+        const [filas] = await pool.query('SELECT id, nombre, descripcion FROM categoria');
+        return filas;
     }
     async buscarCategoriaPorId(id) {
-        const [rows] = await pool.query('SELECT id, nombre, descripcion FROM categoria WHERE id = ?', [id]);
-        return rows[0] ?? null;
+        const [filas] = await pool.query('SELECT id, nombre, descripcion FROM categoria WHERE id = ?', [id]);
+        return filas[0] ?? null;
     }
 
     async crearCategoria(nombre, descripcion) {
-        const [result] = await pool.query(
+        const [resultado] = await pool.query(
             'INSERT INTO categoria (nombre, descripcion) VALUES (?, ?)',
             [nombre, descripcion || null]
         );
-        return result.insertId;
+        return resultado.insertId;
     }
 
     async actualizarCategoria(id, nombre, descripcion) {
-        const [result] = await pool.query(
+        const [resultado] = await pool.query(
             'UPDATE categoria SET nombre = ?, descripcion = ? WHERE id = ?',
             [nombre, descripcion, id]
         );
-        return result.affectedRows > 0;
+        return resultado.affectedRows > 0;
     }
 
     async eliminarCategoria(id) {
-        const [result] = await pool.query('DELETE FROM categoria WHERE id = ?', [id]);
-        return result.affectedRows > 0;
+        const [resultado] = await pool.query('DELETE FROM categoria WHERE id = ?', [id]);
+        return resultado.affectedRows > 0;
     }
 }
 
-export default new CategoriaRepository();
+export default new CategoriaRepositorio();

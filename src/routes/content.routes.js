@@ -1,14 +1,11 @@
 import { Router } from 'express';
-import { ContentController } from '../controllers/content.controller.js';
-
-import { obtenerCatalogoPublicoControlador } from '../controllers/content.controller.js';
+import { ContenidoControlador } from '../controllers/content.controller.js';
+import { obtenerCatalogoPublico } from '../controllers/content.controller.js';
 
 const router = Router();
-const contentController = new ContentController();
+const contenidoControlador = new ContenidoControlador();
 
-router.get('/:id', contentController.obtenerDetalleProducto);
-
-router.get('/catalogo', obtenerCatalogoPublicoControlador);
-
+router.get('/catalogo', obtenerCatalogoPublico);
+router.get('/:id', contenidoControlador.obtenerDetalle);
 
 export default router;

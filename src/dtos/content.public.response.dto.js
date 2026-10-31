@@ -1,4 +1,4 @@
-export class ContentPublicResponseDto {
+export class ContenidoPublicoDTO {
     #titulo;
     #categoria;
     #anioLanzamiento;
@@ -21,7 +21,7 @@ export class ContentPublicResponseDto {
     set anioLanzamiento(nuevoAnio) {this.#anioLanzamiento = nuevoAnio };
     set tipo(nuevoTipo) {this.#tipo = nuevoTipo};
 
-    aJSON() {
+    get data() {
         return {
             titulo: this.#titulo,
             categoria: this.#categoria,

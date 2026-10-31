@@ -1,12 +1,12 @@
-import categoriaRepository from '../repositories/category.repository.js';
+import categoriaRepositorio from '../repositories/category.repository.js';
 
 
-class CategoriaService {
-   async ListarCategorias() {
-       return categoriaRepository.listarCategorias();
+class CategoriaServicio {
+   async listarCategorias() {
+       return categoriaRepositorio.listarCategorias();
    }
 
-   async CrearCategoria(nombre, descripcion) {
+   async crearCategoria(nombre, descripcion) {
        if (typeof nombre !== 'string' || nombre.trim() === '') {
            const error = new Error('El nombre es obligatorio.');
            error.status = 400;
@@ -14,25 +14,25 @@ class CategoriaService {
        }
 
        try {
-           return await categoriaRepository.crearCategoria(nombre.trim(), descripcion);
-       } catch (cause) {
-           if (cause.code === 'ER_DUP_ENTRY') {
+           return await categoriaRepositorio.crearCategoria(nombre.trim(), descripcion);
+       } catch (causa) {
+           if (causa.code === 'ER_DUP_ENTRY') {
                const error = new Error('Ya existe una categoría con este nombre.');
                error.status = 409;
                throw error;
            }
-           throw cause;
+           throw causa;
        }
    }
 
-   async ActualizarCategoria(id, nombre, descripcion) {
+   async actualizarCategoria(id, nombre, descripcion) {
        if (typeof nombre !== 'string' || nombre.trim() === '') {
            const error = new Error('El nombre es obligatorio.');
            error.status = 400;
            throw error;
        }
 
-       const existe = await categoriaRepository.buscarCategoriaPorId(id);
+       const existe = await categoriaRepositorio.buscarCategoriaPorId(id);
        if (!existe) {
            const error = new Error('Categoría no encontrada.');
            error.status = 404;
@@ -40,19 +40,19 @@ class CategoriaService {
        }
 
        try {
-           return await categoriaRepository.actualizarCategoria(id, nombre.trim(), descripcion);
-       } catch (cause) {
-           if (cause.code === 'ER_DUP_ENTRY') {
+           return await categoriaRepositorio.actualizarCategoria(id, nombre.trim(), descripcion);
+       } catch (causa) {
+           if (causa.code === 'ER_DUP_ENTRY') {
                const error = new Error('El nombre de la categoría ya está en uso.');
                error.status = 409;
                throw error;
            }
-           throw cause;
+           throw causa;
        }
    }
 
-   async EliminarCategoria(id) {
-       const existe = await categoriaRepository.buscarCategoriaPorId(id);
+   async eliminarCategoria(id) {
+       const existe = await categoriaRepositorio.buscarCategoriaPorId(id);
        if (!existe) {
            const error = new Error('Categoría no encontrada.');
            error.status = 404;
@@ -60,17 +60,17 @@ class CategoriaService {
        }
 
        try {
-           return await categoriaRepository.eliminarCategoria(id);
-       } catch (cause) {
-           if (cause.code === 'ER_ROW_IS_REFERENCED_2') {
+           return await categoriaRepositorio.eliminarCategoria(id);
+       } catch (causa) {
+           if (causa.code === 'ER_ROW_IS_REFERENCED_2') {
                const error = new Error('No se puede eliminar la categoría porque tiene contenidos asociados.');
                error.status = 409;
                throw error;
            }
-           throw cause;
+           throw causa;
        }
    }
 }
 
 
-export default new CategoriaService();
+export default new CategoriaServicio();
