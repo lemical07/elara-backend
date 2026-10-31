@@ -1,45 +1,21 @@
-import { ContentService } from '../services/contentService.js';
+import { ContentService } from '../services/content.service.js';
 
 export class ContentController {
     constructor() {
         this.contentService = new ContentService();
     }
 
-<<<<<<< HEAD
-    getApproved = async (req, res, next) => {
-        try {
-            const result = await this.contentService.getApprovedContent();
-            return res.status(200).json({
-                exito: true,
-                mensaje: 'Contenido aprobado obtenido exitosamente',
-                datos: result
-            });
-        } catch (error) {
-            return next(error);
-        }
-    };
-
-=======
->>>>>>> feature/services
-    getDetail = async (req, res, next) => {
+    obtenerDetalleProducto = async (req, res, next) => {
         try {
             const { id } = req.params;
-            const result = await this.contentService.getContentDetail(id);
-<<<<<<< HEAD
-            return res.status(200).json({
-=======
+            const result = await this.contentService.obtenerDetalleProducto(id);
             res.status(200).json({
->>>>>>> feature/services
                 exito: true,
                 mensaje: 'Detalle de contenido obtenido exitosamente',
                 datos: result
             });
         } catch (error) {
-<<<<<<< HEAD
-            return next(error);
-=======
             next(error);
->>>>>>> feature/services
         }
     };
 }
