@@ -1,4 +1,4 @@
-export class ContenidoPublicoRespuestaDto {
+export class ContentPublicResponseDto {
     #titulo;
     #categoria;
     #anioLanzamiento;
