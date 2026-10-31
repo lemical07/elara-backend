@@ -8,7 +8,7 @@ ELARA Backend es el componente encargado de gestionar la lógica del servidor, p
 
 El proyecto se desarrolla con Node.js y Express, utilizando MySQL como sistema de gestión de bases de datos. También cuenta con una configuración de Docker para ejecutar el backend y la base de datos en contenedores independientes.
 
-Actualmente, el proyecto dispone de una estructura inicial, configuración de dependencias, variables de entorno, un servidor Express funcional y configuración para Docker. Las funcionalidades del catálogo y la integración con MySQL se implementarán progresivamente.
+El backend incluye autenticación JWT, gestión de usuarios y categorías, consulta del catálogo, reseñas y reacciones. La guía de Postman de este README separa las rutas públicas de las protegidas y especifica los permisos requeridos para cada módulo.
 
 ## Tecnologías
 
@@ -72,15 +72,44 @@ Después, abre `.env` y configura los valores necesarios para el entorno que uti
 
 > El archivo `.env` contiene configuración local y credenciales. No debe subirse al repositorio.
 
-## Autenticación
+## Pruebas de endpoints en Postman
 
-La API utiliza JWT. Configura `JWT_SECRET` en `.env` con un valor secreto propio y `JWT_EXPIRES_IN` con una duración como `1h`. La base de datos debe estar creada con `database/ddl/schema.sql` y los roles inicializados con `database/dml/insert.sql`.
+Esta guía documenta las rutas montadas actualmente en `src/app.js`. Usa variables de entorno de Postman para repetir las pruebas sin tener que cambiar manualmente el host o los identificadores.
 
-Con el servidor ejecutándose en `http://localhost:3000`, prueba estos endpoints en Postman:
+### Preparar Postman
 
-### Registrar usuario
+1. Inicia el servidor y crea un entorno de Postman con estas variables:
 
-`POST /api/auth/register` — Body, tipo **raw / JSON**:
+   | Variable | Valor de ejemplo |
+   |---|---|
+   | `baseUrl` | `http://localhost:3000` |
+   | `token` | El token recibido al registrarte o iniciar sesión |
+   | `usuarioId` | ID de un usuario existente |
+   | `categoriaId` | ID de una categoría existente |
+   | `contenidoId` | ID de un contenido aprobado |
+   | `reviewId` | ID de una reseña visible |
+
+2. Para solicitudes con JSON, selecciona **Body → raw → JSON**.
+3. En las solicitudes protegidas, selecciona **Authorization → Bearer Token** y usa `{{token}}`. Postman agregará el prefijo de autorización automáticamente.
+4. No configures autorización para las solicitudes marcadas como **Público**.
+
+La API requiere `JWT_SECRET` en `.env`. El registro crea usuarios con rol `Usuario`. Para probar rutas administrativas, utiliza una cuenta que ya tenga el rol `Admin` o `Administrador` en MySQL.
+
+### Salud del servidor
+
+| Método | URL | Acceso | Responsabilidad |
+|---|---|---|---|
+| `GET` | `{{baseUrl}}/health` | Público | Comprobar que Express responde. No verifica la conexión a MySQL. |
+
+### Autenticación
+
+| Método | URL | Acceso | Responsabilidad |
+|---|---|---|---|
+| `POST` | `{{baseUrl}}/api/auth/register` | Público | Registrar un usuario y devolver un token. |
+| `POST` | `{{baseUrl}}/api/auth/login` | Público | Validar credenciales y devolver un token. |
+| `GET` | `{{baseUrl}}/api/auth/me` | JWT | Consultar la sesión autenticada. |
+
+**Registro — `POST /api/auth/register`:**
 
 ```json
 {
@@ -91,11 +120,9 @@ Con el servidor ejecutándose en `http://localhost:3000`, prueba estos endpoints
 }
 ```
 
-El endpoint crea una cuenta con rol `Usuario`, cifra la contraseña y responde con el usuario y un token. No envíes `rol_id`: el cliente no puede asignarse permisos de administrador.
+La respuesta contiene `datos.usuario` y `datos.token`. Guarda el token en la variable `token`. No envíes campos de rol ni estado.
 
-### Iniciar sesión
-
-`POST /api/auth/login` — Body, tipo **raw / JSON**:
+**Inicio de sesión — `POST /api/auth/login`:**
 
 ```json
 {
@@ -104,74 +131,103 @@ El endpoint crea una cuenta con rol `Usuario`, cifra la contraseña y responde c
 }
 ```
 
-### Verificar el token y obtener el usuario actual
+Guarda `datos.token` de la respuesta en `token`. El registro responde `201`, el inicio de sesión `200`, las credenciales inválidas `401` y un correo duplicado `409`.
 
-`GET /api/auth/me` — En Postman, en **Authorization**, selecciona **Bearer Token** y pega el `token` que devolvió el registro o el inicio de sesión.
+### Categorías
 
-El registro responde `201`, el inicio de sesión `200`; credenciales incorrectas responden `401` y un correo ya registrado responde `409`.
+| Método | URL | Acceso | Responsabilidad |
+|---|---|---|---|
+| `GET` | `{{baseUrl}}/api/categorias` | Público | Listar categorías. |
+| `POST` | `{{baseUrl}}/api/categorias` | JWT + Admin | Crear una categoría. |
+| `PUT` | `{{baseUrl}}/api/categorias/{{categoriaId}}` | JWT + Admin | Actualizar una categoría. |
+| `DELETE` | `{{baseUrl}}/api/categorias/{{categoriaId}}` | JWT + Admin | Eliminar una categoría sin contenidos asociados. |
 
-### Rutas del catálogo y autorización
-
-- `GET /api/categorias` y `GET /api/contenidos/:id` son rutas de consulta.
-- `POST /api/categorias`, `PUT /api/categorias/:id` y `DELETE /api/categorias/:id` requieren un Bearer Token de un usuario cuyo rol actual en MySQL sea `admin` o `Administrador`.
-
-## Perfil y administración de usuarios
-
-Las rutas de perfil requieren `Authorization: Bearer <token>` obtenido al iniciar sesión. La identidad siempre se toma del JWT validado.
-
-### Perfil propio
-
-- `GET /api/usuarios/me`: consulta el perfil público.
-- `PUT /api/usuarios/me`: actualiza uno o más de `nombre`, `apellido` y `correo`.
-- `PATCH /api/usuarios/me/contrasena`: cambia la contraseña enviando:
+Para crear o actualizar, envía:
 
 ```json
 {
-  "contrasena_actual": "ClaveActual123",
-  "contrasena_nueva": "ClaveNueva456"
+  "nombre": "Anime",
+  "descripcion": "Series y películas de animación japonesa"
 }
 ```
 
-- `DELETE /api/usuarios/me`: desactiva la cuenta. La cuenta y sus reseñas/reacciones se conservan; una cuenta inactiva ya no puede usar rutas protegidas.
+Las operaciones de escritura requieren un token cuyo usuario tenga rol `Admin` o `Administrador`. Un nombre duplicado responde `409`; una categoría inexistente responde `404`; una categoría con contenidos asociados no se puede eliminar.
 
-Los endpoints de perfil no aceptan cambios de `id`, `rol_id`, `activo` ni `contrasena`. Si el correo ya está registrado, la API responde `409`.
+### Contenidos
 
-### Administración de usuarios
-
-Estas rutas requieren un token válido y el rol actual `Admin` o `Administrador` en MySQL:
-
-- `GET /api/usuarios`: lista los perfiles públicos.
-- `GET /api/usuarios/:id`: consulta un perfil.
-- `PATCH /api/usuarios/:id`: actualiza `nombre`, `apellido` y/o `correo`; no permite modificar roles.
-- `PATCH /api/usuarios/:id/estado`: cambia el estado con `{"activo": true}` o `{"activo": false}`. La API impide desactivar la última cuenta administradora activa.
-
-Las respuestas no incluyen contraseñas ni hashes. Las cuentas se desactivan lógicamente porque el esquema vincula usuarios con contenidos, reseñas y reacciones.
-
-### Casos rápidos en Postman
-
-1. Sin token, `GET /api/usuarios/me` debe responder `401`.
-2. Con token de usuario, `GET /api/usuarios/me` responde `200` sin `contrasena` ni `rol_id`.
-3. `PUT /api/usuarios/me` con `{"nombre":"Nuevo nombre"}` responde `200`; con `{"rol_id":1}` responde `400`.
-4. Actualizar a un correo usado por otra cuenta responde `409`.
-5. Cambiar contraseña con la actual correcta responde `200`; con una incorrecta responde `401`.
-6. Un usuario normal recibe `403` en `GET /api/usuarios`; un administrador puede listar usuarios sin hashes.
-7. `DELETE /api/usuarios/me` responde `200`; reutilizar el token después debe responder `401`.
-8. Desactivar la última cuenta `Admin` activa responde `409`.
-
-## Reseñas y calificaciones
-
-Las reseñas corresponden a contenido aprobado. La API no expone el correo del autor ni acepta que el cliente indique el usuario propietario; las rutas privadas usan el usuario del JWT.
-
-| Método | Endpoint | Acceso | Función |
+| Método | URL | Acceso | Responsabilidad |
 |---|---|---|---|
-| `POST` | `/api/reviews` | JWT | Crear una reseña |
-| `GET` | `/api/reviews/contenido/:contenidoId` | Público | Listar reseñas de contenido aprobado |
-| `GET` | `/api/reviews/:id` | Público | Consultar una reseña visible |
-| `GET` | `/api/reviews/mis-reviews` | JWT | Consultar mis reseñas de contenido aprobado |
-| `PUT` | `/api/reviews/:id` | JWT, solo autor | Actualizar título, comentario y/o calificación |
-| `DELETE` | `/api/reviews/:id` | JWT, solo autor | Eliminar una reseña; responde `204` |
+| `GET` | `{{baseUrl}}/api/contenidos/catalogo` | Público | Listar contenidos aprobados. |
+| `GET` | `{{baseUrl}}/api/contenidos/catalogo?categoria=Anime` | Público | Filtrar el catálogo por categoría. |
+| `GET` | `{{baseUrl}}/api/contenidos/{{contenidoId}}` | Público | Consultar el detalle de un contenido aprobado y sus personajes. |
 
-Ejemplo para `POST /api/reviews`:
+Estas son las rutas de contenido montadas actualmente; la API no expone rutas para crear o editar contenidos.
+
+### Usuarios y perfiles
+
+#### Acciones del usuario autenticado
+
+| Método | URL | Acceso | Responsabilidad |
+|---|---|---|---|
+| `GET` | `{{baseUrl}}/api/usuarios/me` | JWT | Consultar el perfil propio. |
+| `PUT` | `{{baseUrl}}/api/usuarios/me` | JWT | Actualizar nombre, apellido y/o correo propios. |
+| `PATCH` | `{{baseUrl}}/api/usuarios/me/contrasena` | JWT | Cambiar la contraseña propia. |
+| `DELETE` | `{{baseUrl}}/api/usuarios/me` | JWT | Desactivar la cuenta propia. |
+
+**Actualizar perfil — `PUT /api/usuarios/me`:**
+
+```json
+{
+  "nombre": "Ana María"
+}
+```
+
+Puedes enviar uno o más de `nombre`, `apellido` y `correo`. No se aceptan campos como `id`, `rol_id`, `activo` ni `contrasena`.
+
+**Cambiar contraseña — `PATCH /api/usuarios/me/contrasena`:**
+
+```json
+{
+  "contrasena_actual": "ClaveSegura123",
+  "contrasena_nueva": "OtraClaveSegura456"
+}
+```
+
+#### Administración de usuarios
+
+Todas estas operaciones requieren JWT y rol `Admin` o `Administrador`:
+
+| Método | URL | Responsabilidad |
+|---|---|---|
+| `GET` | `{{baseUrl}}/api/usuarios` | Listar perfiles públicos. |
+| `GET` | `{{baseUrl}}/api/usuarios/{{usuarioId}}` | Consultar un perfil. |
+| `PATCH` | `{{baseUrl}}/api/usuarios/{{usuarioId}}` | Actualizar nombre, apellido y/o correo; no permite cambiar el rol. |
+| `PATCH` | `{{baseUrl}}/api/usuarios/{{usuarioId}}/estado` | Activar o desactivar una cuenta. |
+
+**Cambiar estado — `PATCH /api/usuarios/{{usuarioId}}/estado`:**
+
+```json
+{
+  "activo": false
+}
+```
+
+Las respuestas no incluyen contraseñas ni hashes. Las cuentas se desactivan lógicamente; la API impide desactivar la última cuenta administradora activa.
+
+### Reseñas y calificaciones
+
+La identidad del autor se obtiene del JWT, nunca de un `usuario_id` enviado por el cliente. Las consultas públicas solo muestran reseñas asociadas a contenido aprobado.
+
+| Método | URL | Acceso | Responsabilidad |
+|---|---|---|---|
+| `POST` | `{{baseUrl}}/api/reviews` | JWT | Crear una reseña para contenido aprobado. |
+| `GET` | `{{baseUrl}}/api/reviews/contenido/{{contenidoId}}` | Público | Listar reseñas de un contenido aprobado. |
+| `GET` | `{{baseUrl}}/api/reviews/{{reviewId}}` | Público | Consultar una reseña visible. |
+| `GET` | `{{baseUrl}}/api/reviews/mis-reviews` | JWT | Listar las reseñas propias. |
+| `PUT` | `{{baseUrl}}/api/reviews/{{reviewId}}` | JWT, solo autor | Actualizar título, comentario y/o calificación. |
+| `DELETE` | `{{baseUrl}}/api/reviews/{{reviewId}}` | JWT, solo autor | Eliminar la reseña; responde `204` sin body. |
+
+**Crear reseña — `POST /api/reviews`:**
 
 ```json
 {
@@ -182,21 +238,21 @@ Ejemplo para `POST /api/reviews`:
 }
 ```
 
-El título es obligatorio y admite hasta 25 caracteres; el comentario es opcional; la calificación debe ser un entero de 1 a 10. Cada usuario puede crear una reseña por contenido. Los duplicados responden `409`, incluyendo colisiones concurrentes protegidas por la restricción `UNIQUE` de MySQL. Las fechas las genera y actualiza MySQL. La API responde `403` al intentar modificar o eliminar la reseña de otra persona y `404` para reseñas o contenido que no sean visibles.
+El título es obligatorio y admite hasta 25 caracteres; el comentario es opcional; la calificación debe ser un entero de 1 a 10. Cada usuario puede crear una reseña por contenido; un duplicado responde `409`. Para actualizar, envía solo los campos que quieres cambiar, por ejemplo `{"calificacion":10}`. No se pueden enviar o modificar `usuario_id`, `contenido_id` ni las fechas.
 
-## Reacciones
+### Reacciones
 
-Las reacciones se pueden registrar únicamente en reseñas de contenido aprobado. La identidad del usuario se toma del JWT; no se acepta `usuario_id` en el body. Cada usuario tiene como máximo una reacción por reseña, garantizado por la restricción `UNIQUE` de MySQL. Repetir el mismo tipo no genera otra fila; enviar el tipo contrario actualiza la reacción existente. No se permite reaccionar a la propia reseña.
+Las operaciones de escritura requieren autenticación. No se permite reaccionar a una reseña propia. Las consultas públicas de totales solo consideran reseñas asociadas a contenido aprobado.
 
-| Método | Endpoint | Acceso | Función |
+| Método | URL | Acceso | Responsabilidad |
 |---|---|---|---|
-| `POST` | `/api/reacciones` | JWT | Crear una reacción o cambiar su tipo |
-| `PUT` | `/api/reacciones/:reviewId` | JWT | Cambiar el tipo de una reacción propia existente |
-| `DELETE` | `/api/reacciones/:reviewId` | JWT | Retirar la reacción propia; responde `204` |
-| `GET` | `/api/reacciones/review/:reviewId` | Público | Consultar totales de likes y dislikes de una reseña visible |
-| `GET` | `/api/reacciones/mis-reacciones` | JWT | Listar las reacciones propias sobre reseñas visibles |
+| `POST` | `{{baseUrl}}/api/reacciones` | JWT | Crear una reacción o cambiar el tipo existente. |
+| `PUT` | `{{baseUrl}}/api/reacciones/{{reviewId}}` | JWT | Cambiar el tipo de una reacción propia existente. |
+| `DELETE` | `{{baseUrl}}/api/reacciones/{{reviewId}}` | JWT | Retirar la reacción propia; responde `204` sin body. |
+| `GET` | `{{baseUrl}}/api/reacciones/review/{{reviewId}}` | Público | Consultar totales de likes y dislikes. |
+| `GET` | `{{baseUrl}}/api/reacciones/mis-reacciones` | JWT | Listar las reacciones propias. |
 
-Ejemplo para `POST /api/reacciones`:
+**Crear o actualizar una reacción — `POST /api/reacciones`:**
 
 ```json
 {
@@ -205,7 +261,21 @@ Ejemplo para `POST /api/reacciones`:
 }
 ```
 
-El tipo solo puede ser `like` o `dislike`. El alta responde `201`; los cambios o reintentos sin cambios responden `200`. Las consultas de totales devuelven cero para ambos tipos cuando la reseña visible no tiene reacciones. La API no almacena contadores redundantes ni implementa ranking o popularidad.
+El tipo solo puede ser `like` o `dislike`. Repetir el mismo tipo no crea otra reacción; enviar el tipo contrario actualiza la reacción existente. El alta responde `201`; los cambios o reintentos sin cambios responden `200`. En la ruta `PUT`, envía únicamente el tipo:
+
+```json
+{
+  "tipo": "dislike"
+}
+```
+
+### Niveles de acceso y errores
+
+- **Público:** no configures JWT en Postman.
+- **JWT:** envía el token de un usuario activo mediante **Authorization → Bearer Token**.
+- **JWT + Admin:** además del token válido, el usuario debe tener rol `Admin` o `Administrador`.
+- **Solo autor:** el token debe pertenecer al autor de la reseña.
+- Una solicitud privada sin token válido responde `401`; un usuario sin permisos responde `403`. El código para recursos inexistentes depende del endpoint.
 
 ## Configuración de variables de entorno
 
@@ -214,7 +284,7 @@ El proyecto utiliza variables de entorno para separar la configuración del cód
 Ejemplo para ejecutar ELARA directamente en Windows con una instalación local de MySQL:
 
 ```dotenv
-PORT=3000
+SERVER_PORT=3000
 
 DB_HOST=localhost
 DB_PORT=3306
@@ -239,15 +309,7 @@ Configura en `.env` el host, el puerto, el nombre de la base de datos y las cred
 
 ### 2. Iniciar el servidor
 
-Desde la raíz del proyecto, ejecuta:
-
-```bash
-npm run dev
-```
-
-Este comando requiere que el script `dev` esté definido en `package.json`.
-
-Si todavía no está configurado, puedes iniciar directamente el servidor con:
+Desde la raíz del proyecto, puedes iniciar el servidor con:
 
 ```bash
 node src/app.js
@@ -341,7 +403,7 @@ elara-backend/
 └── README.md
 ```
 
-> La estructura representa la organización prevista del proyecto. La existencia de una carpeta no implica que sus funcionalidades estén implementadas. El archivo `.env` se crea localmente y no debe subirse al repositorio.
+> El archivo `.env` se crea localmente y no debe subirse al repositorio.
 
 ## Responsabilidades de las carpetas
 
@@ -377,42 +439,15 @@ Las dependencias del proyecto incluyen:
 
 Los comandos disponibles dependen de los scripts definidos en `package.json`.
 
-## Endpoints disponibles
+## Comprobación del servidor
 
-### Comprobación del servidor
-
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `GET` | `/health` | Comprueba que el servidor Express está respondiendo. |
-
-**Solicitud en Postman:**
+Con el servidor ejecutándose, prueba en Postman:
 
 ```http
-GET http://localhost:3000/health
+GET {{baseUrl}}/health
 ```
 
-**Respuesta esperada:**
-
-```json
-{
-  "estado": "Prueba Aprovado",
-  "mensaje": "ELARA Backend en funcionamiento"
-}
-```
-
-El endpoint devuelve `200 OK` cuando el servidor está activo. Esta comprobación no valida por sí sola la conexión con MySQL ni la disponibilidad de las tablas.
-
-Las rutas del catálogo se documentarán a medida que sean implementadas.
-
-## Pruebas realizadas
-
-Se realizaron pruebas manuales de arranque y respuesta HTTP utilizando Postman.
-
-- **Ejecución local:** el servidor Express inició y respondió a la petición de comprobación.
-- **Ejecución con Docker:** se comprobó el funcionamiento del backend y el estado saludable del contenedor de MySQL después de corregir la configuración de las variables de entorno.
-- **Respuesta HTTP:** el endpoint `GET /health` respondió correctamente en ambos entornos.
-
-Estas pruebas verifican el arranque del servidor y su disponibilidad HTTP. No representan todavía pruebas de integración con la base de datos ni pruebas automatizadas de la lógica de negocio.
+El endpoint público responde `200` con un mensaje de estado. Esta comprobación confirma que Express responde; no valida por sí sola la conexión a MySQL.
 
 ## Arquitectura y criterios de diseño
 
@@ -429,14 +464,14 @@ Los patrones se aplicarán de acuerdo con la arquitectura definida para ELARA, e
 
 ## Documentación de la API con Swagger
 
-ELARA Backend utiliza **Swagger UI** y **swagger-jsdoc** para generar y visualizar la documentación de la API REST. La configuración se encuentra en `src/docs/swagger.js`, mientras que los endpoints se documentan mediante comentarios JSDoc en los archivos JavaScript correspondientes.
+ELARA Backend utiliza **Swagger UI** y **swagger-jsdoc** para generar y visualizar la documentación de la API REST. La configuración se encuentra en `docs/swagger.js`, mientras que los endpoints se documentan mediante comentarios JSDoc en los archivos JavaScript correspondientes.
 
 ### Ejecución
 
-Inicia el servidor en modo desarrollo:
+Inicia el servidor desde la raíz del proyecto:
 
 ```bash
-npm run dev
+node src/app.js
 ```
 
 Una vez iniciado, accede a la documentación desde el navegador:
@@ -462,37 +497,8 @@ Swagger UI permite consultar los endpoints documentados, revisar sus parámetros
 
 ## Estado del proyecto
 
-La base inicial de ELARA Backend está preparada para continuar el desarrollo.
-
-**Implementado:**
-
-- Configuración inicial de Node.js y Express.
-- Dependencias del proyecto.
-- Variables de entorno de referencia.
-- Endpoint de comprobación `/health`.
-- Middleware para rutas inexistentes y manejo centralizado de errores.
-- Configuración de Docker para el backend y MySQL.
-- Pruebas manuales iniciales de arranque en local y Docker.
-
-**Pendiente de implementación:**
-
-- Conexión funcional entre la aplicación y MySQL.
-- Creación y validación del esquema de base de datos.
-- Entidades y repositorios del catálogo.
-- Servicios, DTOs, controladores y rutas funcionales para películas, series y anime.
-- Validaciones de entrada y reglas de negocio.
-- Pruebas unitarias y de integración automatizadas.
-- Documentación detallada de los endpoints.
+Los endpoints actualmente montados se documentan en la sección **Pruebas de endpoints en Postman** y en Swagger UI. El script `npm test` todavía es un placeholder y no ejecuta pruebas automatizadas.
 
 ## Licencia
 
 El proyecto utiliza la licencia definida en `package.json`. Si se mantiene como `UNLICENSED`, se considera un proyecto privado que no concede una licencia pública de uso.
-
-## Endpoints del catálogo
-
-- `GET /api/categorias`: lista las categorías.
-- `POST /api/categorias`: crea una categoría; requiere token de administrador.
-- `PUT /api/categorias/:id`: actualiza una categoría; requiere token de administrador.
-- `DELETE /api/categorias/:id`: elimina una categoría sin contenidos asociados; requiere token de administrador.
-- `GET /api/contenidos`: lista los contenidos aprobados.
-- `GET /api/contenidos/:id`: consulta el detalle de un contenido aprobado.
