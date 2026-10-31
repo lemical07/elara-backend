@@ -1,18 +1,18 @@
 import bcrypt from "bcrypt";
 
-import usuarioRepository from '../repositories/user.repository.js';
+import usuarioRepositorio from '../repositories/user.repository.js';
 import UsuarioCrearDTO from '../dtos/user.create.dto.js';
 import UsuarioObtenerDTO from '../dtos/user.read.dto.js';
 import UsuarioActualizarDTO from '../dtos/user.update.dto.js';
 
-class UsuarioService {
+class UsuarioServicio {
     async obtenerTodos() {
-        const usuarios = await usuarioRepository.obtenerTodos();
+        const usuarios = await usuarioRepositorio.obtenerTodos();
         return usuarios.map(usuario => new UsuarioObtenerDTO(usuario).data);
     }
 
     async obtenerPorId(id) {
-        const usuario = await usuarioRepository.buscarPorId(id);
+        const usuario = await usuarioRepositorio.buscarPorId(id);
         if (!usuario) {
             const error = new Error("Usuario no encontrado");
             error.status = 404;
@@ -24,7 +24,7 @@ class UsuarioService {
     
 async crear(datos) {
     const usuarioDTO = new UsuarioCrearDTO(datos);
-    const usuarioExistente = await usuarioRepository.buscarPorCorreo(usuarioDTO.correo);
+    const usuarioExistente = await usuarioRepositorio.buscarPorCorreo(usuarioDTO.correo);
 
     if (usuarioExistente) {
         const error = new Error("El correo electrónico ya está registrado");
@@ -35,7 +35,7 @@ async crear(datos) {
     const contrasenaHash = await bcrypt.hash(usuarioDTO.contrasena,10);
 
 //enviamos al repo unicamente contraseña hasheada
-    const usuario = await usuarioRepository.crear({
+    const usuario = await usuarioRepositorio.crear({
         rol_id: usuarioDTO.rol_id,
         nombre: usuarioDTO.nombre,
         apellido: usuarioDTO.apellido,
@@ -48,7 +48,7 @@ async crear(datos) {
 
 
     async actualizar(id, datos) {
-        const usuarioExistente = await usuarioRepository.buscarPorId(id);
+        const usuarioExistente = await usuarioRepositorio.buscarPorId(id);
         if (!usuarioExistente) {
             const error = new Error("Usuario no encontrado");
             error.status = 404;
@@ -70,7 +70,7 @@ async crear(datos) {
         };
 
         if (datosCompletos.correo !== usuarioExistente.correo.toLowerCase()){
-            const correoExistente = await usuarioRepository.buscarPorCorreo(datosActualizar.correo);
+            const correoExistente = await usuarioRepositorio.buscarPorCorreo(datosActualizar.correo);
             if (correoExistente && correoExistente.id !== Number(id)) {
                 const error = new Error("El correo electrónico ya está registrado");
                 error.status = 409;
@@ -79,7 +79,7 @@ async crear(datos) {
         }
 
         try {
-            const usuarioActualizado = await usuarioRepository.actualizar(id, datosCompletos);
+            const usuarioActualizado = await usuarioRepositorio.actualizar(id, datosCompletos);
             if (!usuarioActualizado) {
                 const error = new Error("Usuario no encontrado");
                 error.status = 404;
@@ -117,7 +117,7 @@ async crear(datos) {
             throw error;
         }
 
-        const usuario = await usuarioRepository.buscarPorIdConContrasena(id);
+        const usuario = await usuarioRepositorio.buscarPorIdConContrasena(id);
         if (!usuario || !usuario.activo) {
             const error = new Error("Usuario no encontrado o inactivo.");
             error.status = 404;
@@ -131,7 +131,7 @@ async crear(datos) {
         }
 
         const hash = await bcrypt.hash(contrasena_nueva, 10);
-        const actualizado = await usuarioRepository.actualizarContrasena(id, hash);
+        const actualizado = await usuarioRepositorio.actualizarContrasena(id, hash);
         if (!actualizado) {
             const error = new Error("Usuario no encontrado");
             error.status = 404;
@@ -142,7 +142,7 @@ async crear(datos) {
     }
 
     async desactivarCuenta(id) {
-        const usuario = await usuarioRepository.actualizarEstado(id, false);
+        const usuario = await usuarioRepositorio.actualizarEstado(id, false);
         if (!usuario) {
             const error = new Error("Usuario no encontrado");
             error.status = 404;
@@ -153,26 +153,26 @@ async crear(datos) {
     }
 
     async actualizarEstado(id, activo) {
-        const usuario = await usuarioRepository.buscarPorId(id);
+        const usuario = await usuarioRepositorio.buscarPorId(id);
         if (!usuario) {
             const error = new Error("Usuario no encontrado");
             error.status = 404;
             throw error;
         }
 
-        await usuarioRepository.actualizarEstado(id, activo);
+        await usuarioRepositorio.actualizarEstado(id, activo);
         return this.obtenerPorId(id);
     }
 
     async eliminar(id) {
-        const usuario = await usuarioRepository.buscarPorId(id);
+        const usuario = await usuarioRepositorio.buscarPorId(id);
         if (!usuario) {
             const error = new Error("Usuario no encontrado");
             error.status = 404;
             throw error;
         }
         
-        await usuarioRepository.eliminar(id);
+        await usuarioRepositorio.eliminar(id);
 
         return {
             id,
@@ -181,4 +181,4 @@ async crear(datos) {
     }
 }
 
-export default new UsuarioService();
+export default new UsuarioServicio();

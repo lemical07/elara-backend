@@ -1,7 +1,7 @@
 
 import pool from "../config/db.js";
 
-class UsuarioRepository {
+class UsuarioRepositorio {
     async crear({rol_id, nombre, apellido, correo, contrasena}) {
         const [resultado] = await pool.execute(
             `INSERT INTO usuario(rol_id, nombre, apellido, correo, contrasena)
@@ -165,4 +165,4 @@ class UsuarioRepository {
     }
 }
 
-export default new UsuarioRepository();
+export default new UsuarioRepositorio();
