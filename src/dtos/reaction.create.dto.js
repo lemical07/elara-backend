@@ -1,4 +1,4 @@
-export default class ReactionCreateDto {
+export default class ReaccionCrearDTO {
     #review_id;
     #tipo;
 
@@ -13,10 +13,4 @@ export default class ReactionCreateDto {
     get review_id() { return this.#review_id; }
     get tipo() { return this.#tipo; }
 
-    get data() {
-        return {
-            review_id: this.#review_id,
-            tipo: this.#tipo
-        };
-    }
 }

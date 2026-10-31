@@ -1,4 +1,4 @@
-export default class ReviewCreateDto {
+export default class ResenaCrearDTO {
     #titulo;
     #comentario;
     #calificacion;
@@ -17,11 +17,4 @@ export default class ReviewCreateDto {
     get comentario() { return this.#comentario; }
     get calificacion() { return this.#calificacion; }
 
-    get data() {
-        return {
-            titulo: this.#titulo,
-            comentario: this.#comentario,
-            calificacion: this.#calificacion
-        };
-    }
 }

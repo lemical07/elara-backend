@@ -1,4 +1,4 @@
-export default class ReactionSummaryDto {
+export default class ReaccionResumenDTO {
     #review_id;
     #total_likes;
     #total_dislikes;

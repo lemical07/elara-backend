@@ -1,8 +1,8 @@
-import reactionRepository from '../repositories/reaction.repository.js';
-import ReactionCreateDto from '../dtos/reaction.create.dto.js';
-import ReactionReadDto from '../dtos/reaction.read.dto.js';
-import ReactionSummaryDto from '../dtos/reaction.summary.dto.js';
-import ReactionUpdateDto from '../dtos/reaction.update.dto.js';
+import reaccionRepositorio from '../repositories/reaction.repository.js';
+import ReaccionCrearDTO from '../dtos/reaction.create.dto.js';
+import ReaccionObtenerDTO from '../dtos/reaction.read.dto.js';
+import ReaccionResumenDTO from '../dtos/reaction.summary.dto.js';
+import ReaccionActualizarDTO from '../dtos/reaction.update.dto.js';
 
 function crearError(mensaje, status) {
     const error = new Error(mensaje);
@@ -11,16 +11,16 @@ function crearError(mensaje, status) {
 }
 
 function mapearReaccion(reaccion) {
-    return new ReactionReadDto(reaccion).data;
+    return new ReaccionObtenerDTO(reaccion).data;
 }
 
-export class ReactionService {
-    constructor(repository = reactionRepository) {
-        this.reactionRepository = repository;
+export class ReaccionServicio {
+    constructor(repositorio = reaccionRepositorio) {
+        this.reaccionRepositorio = repositorio;
     }
 
-    async verificarResena(reviewId, usuarioId) {
-        const resena = await this.reactionRepository.buscarResenaVisible(reviewId);
+    async verificarResena(resenaId, usuarioId) {
+        const resena = await this.reaccionRepositorio.buscarResenaVisible(resenaId);
         if (!resena) {
             throw crearError('Reseña no encontrada.', 404);
         }
@@ -31,13 +31,13 @@ export class ReactionService {
     }
 
     async registrar(usuarioId, datos) {
-        const datosReaccion = new ReactionCreateDto(datos).data;
-        await this.verificarResena(datosReaccion.review_id, usuarioId);
+        const reaccionDTO = new ReaccionCrearDTO(datos);
+        await this.verificarResena(reaccionDTO.review_id, usuarioId);
 
-        const resultado = await this.reactionRepository.registrarOActualizar(
+        const resultado = await this.reaccionRepositorio.registrarOActualizar(
             usuarioId,
-            datosReaccion.review_id,
-            datosReaccion.tipo
+            reaccionDTO.review_id,
+            reaccionDTO.tipo
         );
 
         return {
@@ -47,25 +47,25 @@ export class ReactionService {
                 : resultado.cambio
                     ? 'Reacción actualizada correctamente.'
                     : 'La reacción ya tenía ese tipo; no hubo cambios.',
-            datos: mapearReaccion(datosReaccion)
+            datos: mapearReaccion(reaccionDTO)
         };
     }
 
-    async actualizar(usuarioId, reviewId, datos) {
-        await this.verificarResena(reviewId, usuarioId);
+    async actualizar(usuarioId, resenaId, datos) {
+        await this.verificarResena(resenaId, usuarioId);
 
-        const reaccionActual = await this.reactionRepository.buscarPropia(usuarioId, reviewId);
+        const reaccionActual = await this.reaccionRepositorio.buscarPropia(usuarioId, resenaId);
         if (!reaccionActual) {
             throw crearError('No tienes una reacción para esta reseña.', 404);
         }
 
-        const actualizacion = new ReactionUpdateDto(datos).data;
-        const cambio = await this.reactionRepository.actualizarPropia(
+        const actualizacion = new ReaccionActualizarDTO(datos).data;
+        const cambio = await this.reaccionRepositorio.actualizarPropia(
             usuarioId,
-            reviewId,
+            resenaId,
             actualizacion.tipo
         );
-        if (!cambio && !(await this.reactionRepository.buscarPropia(usuarioId, reviewId))) {
+        if (!cambio && !(await this.reaccionRepositorio.buscarPropia(usuarioId, resenaId))) {
             throw crearError('No tienes una reacción para esta reseña.', 404);
         }
 
@@ -73,29 +73,29 @@ export class ReactionService {
             mensaje: cambio
                 ? 'Reacción actualizada correctamente.'
                 : 'La reacción ya tenía ese tipo; no hubo cambios.',
-            datos: mapearReaccion({ review_id: reviewId, tipo: actualizacion.tipo })
+            datos: mapearReaccion({ review_id: resenaId, tipo: actualizacion.tipo })
         };
     }
 
-    async eliminar(usuarioId, reviewId) {
-        await this.verificarResena(reviewId, usuarioId);
+    async eliminar(usuarioId, resenaId) {
+        await this.verificarResena(resenaId, usuarioId);
 
-        const eliminada = await this.reactionRepository.eliminarPropia(usuarioId, reviewId);
+        const eliminada = await this.reaccionRepositorio.eliminarPropia(usuarioId, resenaId);
         if (!eliminada) {
             throw crearError('No tienes una reacción para esta reseña.', 404);
         }
     }
 
-    async obtenerTotales(reviewId) {
-        await this.verificarResena(reviewId);
-        const totales = await this.reactionRepository.obtenerTotales(reviewId);
-        return new ReactionSummaryDto(totales).data;
+    async obtenerTotales(resenaId) {
+        await this.verificarResena(resenaId);
+        const totales = await this.reaccionRepositorio.obtenerTotales(resenaId);
+        return new ReaccionResumenDTO(totales).data;
     }
 
     async listarPropias(usuarioId) {
-        const reacciones = await this.reactionRepository.listarPropias(usuarioId);
-        return reacciones.map(reaccion => new ReactionReadDto(reaccion).data);
+        const reacciones = await this.reaccionRepositorio.listarPropias(usuarioId);
+        return reacciones.map(reaccion => new ReaccionObtenerDTO(reaccion).data);
     }
 }
 
-export default new ReactionService();
+export default new ReaccionServicio();

@@ -1,16 +1,16 @@
 import { Router } from 'express';
-import { ReactionController } from '../controllers/reaction.controller.js';
+import { ReaccionControlador } from '../controllers/reaction.controller.js';
 import { autenticarJWT } from '../middleware/auth.middleware.js';
 import { validarSolicitud } from '../middleware/validation.middleware.js';
-import {ReactionActualizarValidaciones, ReactionCrearValidaciones, ReactionReviewIdValidaciones} from '../validators/reaction.validator.js';
+import {ReaccionActualizarValidaciones, ReaccionCrearValidaciones, ReaccionResenaIdValidaciones } from '../validators/reaction.validator.js';
 
 const router = Router();
-const reactionController = new ReactionController();
+const reaccionControlador = new ReaccionControlador();
 
-router.post('/', autenticarJWT, ReactionCrearValidaciones, validarSolicitud, reactionController.registrar);
-router.get('/review/:reviewId', ReactionReviewIdValidaciones, validarSolicitud, reactionController.obtenerTotales);
-router.get('/mis-reacciones', autenticarJWT, reactionController.listarPropias);
-router.put('/:reviewId', autenticarJWT, ReactionReviewIdValidaciones, ReactionActualizarValidaciones, validarSolicitud, reactionController.actualizar);
-router.delete('/:reviewId', autenticarJWT, ReactionReviewIdValidaciones, validarSolicitud, reactionController.eliminar);
+router.post('/', autenticarJWT, ReaccionCrearValidaciones, validarSolicitud, reaccionControlador.registrar);
+router.get('/review/:reviewId', ReaccionResenaIdValidaciones, validarSolicitud, reaccionControlador.obtenerTotales);
+router.get('/mis-reacciones', autenticarJWT, reaccionControlador.listarPropias);
+router.put('/:reviewId', autenticarJWT, ReaccionResenaIdValidaciones, ReaccionActualizarValidaciones, validarSolicitud, reaccionControlador.actualizar);
+router.delete('/:reviewId', autenticarJWT, ReaccionResenaIdValidaciones, validarSolicitud, reaccionControlador.eliminar);
 
 export default router;

@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 
-class ReviewRepository {
+class ResenaRepositorio {
     async buscarContenidoPorId(id) {
         const [filas] = await pool.execute(
             `SELECT id, estado
@@ -139,4 +139,4 @@ class ReviewRepository {
     }
 }
 
-export default new ReviewRepository();
+export default new ResenaRepositorio();

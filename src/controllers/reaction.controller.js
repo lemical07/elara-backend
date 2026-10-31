@@ -1,13 +1,13 @@
-import reactionService from '../services/reaction.service.js';
+import reaccionServicio from '../services/reaction.service.js';
 
-export class ReactionController {
-    constructor(service = reactionService) {
-        this.reactionService = service;
+export class ReaccionControlador {
+    constructor(servicio = reaccionServicio) {
+        this.reaccionServicio = servicio;
     }
 
     registrar = async (req, res, next) => {
         try {
-            const resultado = await this.reactionService.registrar(req.user.id, req.body);
+            const resultado = await this.reaccionServicio.registrar(req.user.id, req.body);
             return res.status(resultado.creada ? 201 : 200).json({
                 exito: true,
                 mensaje: resultado.mensaje,
@@ -20,7 +20,7 @@ export class ReactionController {
 
     actualizar = async (req, res, next) => {
         try {
-            const resultado = await this.reactionService.actualizar(
+            const resultado = await this.reaccionServicio.actualizar(
                 req.user.id,
                 Number(req.params.reviewId),
                 req.body
@@ -37,7 +37,7 @@ export class ReactionController {
 
     eliminar = async (req, res, next) => {
         try {
-            await this.reactionService.eliminar(req.user.id, Number(req.params.reviewId));
+            await this.reaccionServicio.eliminar(req.user.id, Number(req.params.reviewId));
             return res.status(204).send();
         } catch (error) {
             return next(error);
@@ -46,7 +46,7 @@ export class ReactionController {
 
     obtenerTotales = async (req, res, next) => {
         try {
-            const totales = await this.reactionService.obtenerTotales(Number(req.params.reviewId));
+            const totales = await this.reaccionServicio.obtenerTotales(Number(req.params.reviewId));
             return res.status(200).json({ exito: true, datos: totales });
         } catch (error) {
             return next(error);
@@ -55,7 +55,7 @@ export class ReactionController {
 
     listarPropias = async (req, res, next) => {
         try {
-            const reacciones = await this.reactionService.listarPropias(req.user.id);
+            const reacciones = await this.reaccionServicio.listarPropias(req.user.id);
             return res.status(200).json({ exito: true, datos: reacciones });
         } catch (error) {
             return next(error);

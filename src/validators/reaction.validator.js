@@ -17,7 +17,7 @@ function validarCamposPermitidos(campos) {
     });
 }
 
-export const ReactionCrearValidaciones = [
+export const ReaccionCrearValidaciones = [
     validarCamposPermitidos(['review_id', 'tipo']),
     body('review_id')
         .custom(valor => typeof valor === 'number' && Number.isInteger(valor) && valor > 0)
@@ -26,13 +26,13 @@ export const ReactionCrearValidaciones = [
         .isIn(tiposPermitidos).withMessage('El tipo debe ser like o dislike.')
 ];
 
-export const ReactionActualizarValidaciones = [
+export const ReaccionActualizarValidaciones = [
     validarCamposPermitidos(['tipo']),
     body('tipo')
         .isIn(tiposPermitidos).withMessage('El tipo debe ser like o dislike.')
 ];
 
-export const ReactionReviewIdValidaciones = [
+export const ReaccionResenaIdValidaciones = [
     param('reviewId')
-        .isInt({ min: 1 }).withMessage('El reviewId debe ser un entero positivo.')
+        .isInt({ min: 1 }).withMessage('El id de reseña debe ser un entero positivo.')
 ];

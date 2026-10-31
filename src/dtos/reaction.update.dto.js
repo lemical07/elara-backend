@@ -1,4 +1,4 @@
-export default class ReactionUpdateDto {
+export default class ReaccionActualizarDTO {
     #tipo;
 
     constructor(data) {

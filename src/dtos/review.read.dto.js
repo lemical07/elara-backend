@@ -1,4 +1,4 @@
-export default class ReviewReadDto {
+export default class ResenaObtenerDTO {
     #id;
     #contenido_id;
     #contenido_titulo;

@@ -1,7 +1,7 @@
-import reviewRepository from '../repositories/review.repository.js';
-import ReviewCreateDto from '../dtos/review.create.dto.js';
-import ReviewReadDto from '../dtos/review.read.dto.js';
-import ReviewUpdateDto from '../dtos/review.update.dto.js';
+import resenaRepositorio from '../repositories/review.repository.js';
+import ResenaCrearDTO from '../dtos/review.create.dto.js';
+import ResenaObtenerDTO from '../dtos/review.read.dto.js';
+import ResenaActualizarDTO from '../dtos/review.update.dto.js';
 
 function crearError(mensaje, status) {
     const error = new Error(mensaje);
@@ -10,16 +10,16 @@ function crearError(mensaje, status) {
 }
 
 function mapearResena(resena) {
-    return new ReviewReadDto(resena).data;
+    return new ResenaObtenerDTO(resena).data;
 }
 
-export class ReviewService {
-    constructor(repository = reviewRepository) {
-        this.reviewRepository = repository;
+export class ResenaServicio {
+    constructor(repositorio = resenaRepositorio) {
+        this.resenaRepositorio = repositorio;
     }
 
     async crear(usuarioId, contenidoId, datos) {
-        const contenido = await this.reviewRepository.buscarContenidoPorId(contenidoId);
+        const contenido = await this.resenaRepositorio.buscarContenidoPorId(contenidoId);
         if (!contenido) {
             throw crearError('Contenido no encontrado.', 404);
         }
@@ -27,26 +27,28 @@ export class ReviewService {
             throw crearError('El contenido aún no está disponible para recibir reseñas.', 409);
         }
 
-        if (await this.reviewRepository.buscarPorUsuarioYContenido(usuarioId, contenidoId)) {
+        if (await this.resenaRepositorio.buscarPorUsuarioYContenido(usuarioId, contenidoId)) {
             throw crearError('Ya publicaste una reseña para este contenido.', 409);
         }
 
-        const resenaDto = new ReviewCreateDto(datos);
+        const resenaDTO = new ResenaCrearDTO(datos);
         let id;
         try {
-            id = await this.reviewRepository.crear({
+            id = await this.resenaRepositorio.crear({
                 usuario_id: usuarioId,
                 contenido_id: contenidoId,
-                ...resenaDto.data
+                titulo: resenaDTO.titulo,
+                comentario: resenaDTO.comentario,
+                calificacion: resenaDTO.calificacion
             });
-        } catch (cause) {
-            if (cause.code === 'ER_DUP_ENTRY') {
+        } catch (causa) {
+            if (causa.code === 'ER_DUP_ENTRY') {
                 throw crearError('Ya publicaste una reseña para este contenido.', 409);
             }
-            throw cause;
+            throw causa;
         }
 
-        const resena = await this.reviewRepository.buscarPropiaPorId(id, usuarioId);
+        const resena = await this.resenaRepositorio.buscarPropiaPorId(id, usuarioId);
         if (!resena) {
             throw new Error('No fue posible recuperar la reseña recién creada.');
         }
@@ -54,15 +56,15 @@ export class ReviewService {
     }
 
     async listarPorContenido(contenidoId) {
-        if (!(await this.reviewRepository.buscarContenidoAprobadoPorId(contenidoId))) {
+        if (!(await this.resenaRepositorio.buscarContenidoAprobadoPorId(contenidoId))) {
             throw crearError('Contenido no encontrado.', 404);
         }
-        const resenas = await this.reviewRepository.buscarResenasPorContenido(contenidoId);
+        const resenas = await this.resenaRepositorio.buscarResenasPorContenido(contenidoId);
         return resenas.map(mapearResena);
     }
 
     async obtenerPorId(id) {
-        const resena = await this.reviewRepository.buscarPorIdVisible(id);
+        const resena = await this.resenaRepositorio.buscarPorIdVisible(id);
         if (!resena) {
             throw crearError('Reseña no encontrada.', 404);
         }
@@ -70,12 +72,12 @@ export class ReviewService {
     }
 
     async listarPropias(usuarioId) {
-        const resenas = await this.reviewRepository.buscarResenasPorUsuario(usuarioId);
+        const resenas = await this.resenaRepositorio.buscarResenasPorUsuario(usuarioId);
         return resenas.map(mapearResena);
     }
 
     async actualizar(id, usuarioId, datos) {
-        const propietario = await this.reviewRepository.buscarPropietario(id);
+        const propietario = await this.resenaRepositorio.buscarPropietario(id);
         if (!propietario) {
             throw crearError('Reseña no encontrada.', 404);
         }
@@ -83,10 +85,10 @@ export class ReviewService {
             throw crearError('No tienes permiso para modificar esta reseña.', 403);
         }
 
-        const datosActualizar = new ReviewUpdateDto(datos);
-        await this.reviewRepository.actualizarPropia(id, usuarioId, datosActualizar.data);
+        const datosActualizar = new ResenaActualizarDTO(datos);
+        await this.resenaRepositorio.actualizarPropia(id, usuarioId, datosActualizar.data);
 
-        const resena = await this.reviewRepository.buscarPropiaPorId(id, usuarioId);
+        const resena = await this.resenaRepositorio.buscarPropiaPorId(id, usuarioId);
         if (!resena) {
             throw crearError('Reseña no encontrada.', 404);
         }
@@ -94,7 +96,7 @@ export class ReviewService {
     }
 
     async eliminar(id, usuarioId) {
-        const propietario = await this.reviewRepository.buscarPropietario(id);
+        const propietario = await this.resenaRepositorio.buscarPropietario(id);
         if (!propietario) {
             throw crearError('Reseña no encontrada.', 404);
         }
@@ -102,11 +104,11 @@ export class ReviewService {
             throw crearError('No tienes permiso para eliminar esta reseña.', 403);
         }
 
-        const eliminada = await this.reviewRepository.eliminarPropia(id, usuarioId);
+        const eliminada = await this.resenaRepositorio.eliminarPropia(id, usuarioId);
         if (!eliminada) {
             throw crearError('Reseña no encontrada.', 404);
         }
     }
 }
 
-export default new ReviewService();
+export default new ResenaServicio();

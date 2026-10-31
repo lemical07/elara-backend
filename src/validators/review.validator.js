@@ -16,7 +16,7 @@ const validarCuerpo = campos => body().custom((_, { req }) => {
     return true;
 });
 
-export const ReviewCrearValidaciones = [
+export const ResenaCrearValidaciones = [
     validarCuerpo(camposPermitidos),
     body('contenido_id')
         .isInt({ min: 1 }).withMessage('El contenido_id debe ser un entero positivo.'),
@@ -33,17 +33,17 @@ export const ReviewCrearValidaciones = [
         .withMessage('La calificación debe ser un número entero entre 1 y 10.')
 ];
 
-export const ReviewIdValidaciones = [
+export const ResenaIdValidaciones = [
     param('id')
         .isInt({ min: 1 }).withMessage('El id debe ser un entero positivo.')
 ];
 
-export const ReviewContenidoIdValidaciones = [
+export const ResenaContenidoIdValidaciones = [
     param('contenidoId')
         .isInt({ min: 1 }).withMessage('El contenidoId debe ser un entero positivo.')
 ];
 
-export const ReviewActualizarValidaciones = [
+export const ResenaActualizarValidaciones = [
     validarCuerpo(camposActualizables),
     body('titulo')
         .optional()

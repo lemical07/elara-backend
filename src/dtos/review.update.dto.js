@@ -1,4 +1,4 @@
-export default class ReviewUpdateDto {
+export default class ResenaActualizarDTO {
     #titulo;
     #comentario;
     #calificacion;
@@ -23,7 +23,7 @@ export default class ReviewUpdateDto {
                 titulo: this.#titulo,
                 comentario: this.#comentario,
                 calificacion: this.#calificacion
-            }).filter(([, value]) => value !== undefined)
+            }).filter(([, valor]) => valor !== undefined)
         );
     }
 }

@@ -1,4 +1,4 @@
-export default class ReactionReadDto {
+export default class ReaccionObtenerDTO {
     #review_id;
     #tipo;
     #review_titulo;
@@ -26,20 +26,12 @@ export default class ReactionReadDto {
     get contenido_titulo() { return this.#contenido_titulo; }
 
     get data() {
-        const datos = {
+        return {
             review_id: this.#review_id,
-            tipo: this.#tipo
+            tipo: this.#tipo,
+            review_titulo: this.#review_titulo,
+            review_calificacion: this.#review_calificacion,
+            contenido_titulo: this.#contenido_titulo
         };
-
-        if (this.#review_titulo !== undefined) {
-            datos.review_titulo = this.#review_titulo;
-        }
-        if (this.#review_calificacion !== undefined) {
-            datos.review_calificacion = this.#review_calificacion;
-        }
-        if (this.#contenido_titulo !== undefined) {
-            datos.contenido_titulo = this.#contenido_titulo;
-        }
-        return datos;
     }
 }
