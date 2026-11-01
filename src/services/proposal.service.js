@@ -1,17 +1,37 @@
-import proposalRepository from '../repositories/proposal.repository.js';
-import { formatearRespuestaPropuestaDto } from '../dtos/proposal.dto.js';
-import { validarDatosPropuesta } from '../validators/proposal.validator.js';
+import propuestaRepositorio from '../repositories/proposal.repository.js';
+import { PropuestaRespuestaDTO } from '../dtos/proposal.dtos.js';
 
-class ProposalService {
+function crearError(mensaje, status) {
+    const error = new Error(mensaje);
+    error.status = status;
+    return error;
+}
+
+class PropuestaServicio {
+    constructor(repositorio = propuestaRepositorio) {
+        this.propuestaRepositorio = repositorio;
+    }
 
     async procesarPropuesta(datosPropuesta, usuarioId) {
-        const errorValidacion = validarDatosPropuesta(datosPropuesta);
-        if (errorValidacion) {
-            throw new Error(errorValidacion);
+        if (!(await this.propuestaRepositorio.existeCategoria(datosPropuesta.categoria_id))) {
+            throw crearError('Categoría no encontrada.', 404);
         }
-        const contenidoCreado = await proposalRepository.guardarPropuesta(datosPropuesta, usuarioId);
-        return formatearRespuestaPropuestaDto(contenidoCreado);
+        const contenidoCreado = await this.propuestaRepositorio.guardarPropuesta(datosPropuesta, usuarioId);
+        return new PropuestaRespuestaDTO(contenidoCreado).data;
+    }
+
+    async listarPendientes() {
+        const propuestas = await this.propuestaRepositorio.listarPendientes();
+        return propuestas;
+    }
+
+    async resolverPropuesta(id, estado, administradorId) {
+        const propuesta = await this.propuestaRepositorio.actualizarEstado(id, estado, administradorId);
+        if (!propuesta) {
+            throw crearError('Propuesta no encontrada.', 404);
+        }
+        return propuesta;
     }
 }
 
-export default new ProposalService();
+export default new PropuestaServicio();
