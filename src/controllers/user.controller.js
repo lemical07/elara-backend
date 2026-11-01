@@ -45,6 +45,18 @@ export class UsuarioControlador {
         }
     };
 
+    eliminarMiCuenta = async (req, res, next) => {
+        try {
+            const resultado = await this.usuarioServicio.eliminarMiCuenta(
+                req.user.id,
+                req.body.contrasena_actual
+            );
+            return res.status(200).json({ exito: true, ...resultado });
+        } catch (error) {
+            return next(error);
+        }
+    };
+
     obtenerUsuarios = async (req, res, next) => {
         try {
             const usuarios = await this.usuarioServicio.obtenerTodos();

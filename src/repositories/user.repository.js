@@ -156,12 +156,62 @@ class UsuarioRepositorio {
     }
 
     async eliminar(id) {
-        const [resultado] = await pool.execute(
-            `DELETE FROM usuario WHERE id = ?`,
-            [id]
-        );
+        const conexion = await pool.getConnection();
+        let transaccionIniciada = false;
 
-        return resultado.affectedRows > 0;
+        try {
+            await conexion.beginTransaction();
+            transaccionIniciada = true;
+
+            const [filas] = await conexion.execute(
+                `SELECT u.activo, r.nombre_rol
+                 FROM usuario u
+                 INNER JOIN rol r ON r.id = u.rol_id
+                 WHERE u.id = ?
+                 FOR UPDATE`,
+                [id]
+            );
+            const usuario = filas[0];
+            if (!usuario) {
+                await conexion.rollback();
+                transaccionIniciada = false;
+                return false;
+            }
+
+            const esAdmin = ['admin', 'administrador'].includes(usuario.nombre_rol.trim().toLowerCase());
+            if (usuario.activo && esAdmin) {
+                const [administradoresActivos] = await conexion.execute(
+                    `SELECT u.id
+                     FROM usuario u
+                     INNER JOIN rol r ON r.id = u.rol_id
+                     WHERE u.activo = TRUE
+                       AND LOWER(r.nombre_rol) IN ('admin', 'administrador')
+                     ORDER BY u.id
+                     FOR UPDATE`
+                );
+
+                if (administradoresActivos.length <= 1) {
+                    const error = new Error('No se puede eliminar la última cuenta administradora activa.');
+                    error.status = 409;
+                    throw error;
+                }
+            }
+
+            const [resultado] = await conexion.execute(
+                `DELETE FROM usuario WHERE id = ?`,
+                [id]
+            );
+            await conexion.commit();
+            transaccionIniciada = false;
+            return resultado.affectedRows > 0;
+        } catch (error) {
+            if (transaccionIniciada) {
+                await conexion.rollback();
+            }
+            throw error;
+        } finally {
+            conexion.release();
+        }
     }
 }
 

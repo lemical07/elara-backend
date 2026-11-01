@@ -179,6 +179,30 @@ async crear(datos) {
             mensaje: "Usuario eliminado correctamente"
         };
     }
+
+    async eliminarMiCuenta(id, contrasenaActual) {
+        const usuario = await usuarioRepositorio.buscarPorIdConContrasena(id);
+        if (!usuario || !usuario.activo) {
+            const error = new Error("Usuario no encontrado o inactivo.");
+            error.status = 404;
+            throw error;
+        }
+
+        if (!(await bcrypt.compare(contrasenaActual, usuario.contrasena))) {
+            const error = new Error("La contraseña actual es incorrecta.");
+            error.status = 401;
+            throw error;
+        }
+
+        const eliminado = await usuarioRepositorio.eliminar(id);
+        if (!eliminado) {
+            const error = new Error("Usuario no encontrado.");
+            error.status = 404;
+            throw error;
+        }
+
+        return { id: Number(id), mensaje: "Cuenta eliminada permanentemente." };
+    }
 }
 
 export default new UsuarioServicio();
