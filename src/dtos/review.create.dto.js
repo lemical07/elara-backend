@@ -2,11 +2,13 @@ export default class ResenaCrearDTO {
     #titulo;
     #comentario;
     #calificacion;
+    #nombre_visitante;
 
     constructor(data) {
         this.#titulo = data.titulo.trim();
         this.#comentario = data.comentario ?? null;
         this.#calificacion = data.calificacion;
+        this.#nombre_visitante = data.nombre_visitante?.trim() || null;
     }
 
     set titulo(titulo) { this.#titulo = titulo; }
@@ -16,5 +18,6 @@ export default class ResenaCrearDTO {
     get titulo() { return this.#titulo; }
     get comentario() { return this.#comentario; }
     get calificacion() { return this.#calificacion; }
+    get nombre_visitante() { return this.#nombre_visitante; }
 
 }

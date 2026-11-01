@@ -1,5 +1,12 @@
 import reaccionServicio from '../services/reaction.service.js';
 
+function obtenerIdentidad(req) {
+    return {
+        usuarioId: req.user?.id,
+        visitanteId: req.visitante?.id
+    };
+}
+
 export class ReaccionControlador {
     constructor(servicio = reaccionServicio) {
         this.reaccionServicio = servicio;
@@ -7,7 +14,7 @@ export class ReaccionControlador {
 
     registrar = async (req, res, next) => {
         try {
-            const resultado = await this.reaccionServicio.registrar(req.user.id, req.body);
+            const resultado = await this.reaccionServicio.registrar(obtenerIdentidad(req), req.body);
             return res.status(resultado.creada ? 201 : 200).json({
                 exito: true,
                 mensaje: resultado.mensaje,
@@ -21,7 +28,7 @@ export class ReaccionControlador {
     actualizar = async (req, res, next) => {
         try {
             const resultado = await this.reaccionServicio.actualizar(
-                req.user.id,
+                obtenerIdentidad(req),
                 Number(req.params.reviewId),
                 req.body
             );
@@ -37,7 +44,7 @@ export class ReaccionControlador {
 
     eliminar = async (req, res, next) => {
         try {
-            await this.reaccionServicio.eliminar(req.user.id, Number(req.params.reviewId));
+            await this.reaccionServicio.eliminar(obtenerIdentidad(req), Number(req.params.reviewId));
             return res.status(204).send();
         } catch (error) {
             return next(error);
@@ -55,7 +62,7 @@ export class ReaccionControlador {
 
     listarPropias = async (req, res, next) => {
         try {
-            const reacciones = await this.reaccionServicio.listarPropias(req.user.id);
+            const reacciones = await this.reaccionServicio.listarPropias(obtenerIdentidad(req));
             return res.status(200).json({ exito: true, datos: reacciones });
         } catch (error) {
             return next(error);

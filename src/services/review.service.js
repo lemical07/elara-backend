@@ -18,7 +18,17 @@ export class ResenaServicio {
         this.resenaRepositorio = repositorio;
     }
 
-    async crear(usuarioId, contenidoId, datos) {
+    obtenerIdsIdentidad(identidad) {
+        const usuarioId = identidad.usuarioId ?? null;
+        const visitanteId = identidad.visitanteId ?? null;
+        if (Boolean(usuarioId) === Boolean(visitanteId)) {
+            throw crearError('Se requiere una sola identidad para publicar esta reseña.', 401);
+        }
+        return { usuarioId, visitanteId };
+    }
+
+    async crear(identidad, contenidoId, datos) {
+        const { usuarioId, visitanteId } = this.obtenerIdsIdentidad(identidad);
         const contenido = await this.resenaRepositorio.buscarContenidoPorId(contenidoId);
         if (!contenido) {
             throw crearError('Contenido no encontrado.', 404);
@@ -27,7 +37,7 @@ export class ResenaServicio {
             throw crearError('El contenido aún no está disponible para recibir reseñas.', 409);
         }
 
-        if (await this.resenaRepositorio.buscarPorUsuarioYContenido(usuarioId, contenidoId)) {
+        if (await this.resenaRepositorio.buscarPorIdentidadYContenido(usuarioId, visitanteId, contenidoId)) {
             throw crearError('Ya publicaste una reseña para este contenido.', 409);
         }
 
@@ -36,7 +46,9 @@ export class ResenaServicio {
         try {
             id = await this.resenaRepositorio.crear({
                 usuario_id: usuarioId,
+                visitante_id: visitanteId,
                 contenido_id: contenidoId,
+                nombre_visitante: visitanteId ? resenaDTO.nombre_visitante : null,
                 titulo: resenaDTO.titulo,
                 comentario: resenaDTO.comentario,
                 calificacion: resenaDTO.calificacion
@@ -48,7 +60,7 @@ export class ResenaServicio {
             throw causa;
         }
 
-        const resena = await this.resenaRepositorio.buscarPropiaPorId(id, usuarioId);
+        const resena = await this.resenaRepositorio.buscarPropiaPorId(id, usuarioId, visitanteId);
         if (!resena) {
             throw new Error('No fue posible recuperar la reseña recién creada.');
         }
@@ -71,40 +83,47 @@ export class ResenaServicio {
         return mapearResena(resena);
     }
 
-    async listarPropias(usuarioId) {
-        const resenas = await this.resenaRepositorio.buscarResenasPorUsuario(usuarioId);
+    async listarPropias(identidad) {
+        const { usuarioId, visitanteId } = this.obtenerIdsIdentidad(identidad);
+        const resenas = await this.resenaRepositorio.buscarResenasPorIdentidad(usuarioId, visitanteId);
         return resenas.map(mapearResena);
     }
 
-    async actualizar(id, usuarioId, datos) {
+    async actualizar(id, identidad, datos) {
+        const { usuarioId, visitanteId } = this.obtenerIdsIdentidad(identidad);
         const propietario = await this.resenaRepositorio.buscarPropietario(id);
         if (!propietario) {
             throw crearError('Reseña no encontrada.', 404);
         }
-        if (Number(propietario.usuario_id) !== Number(usuarioId)) {
+        const propietarioId = usuarioId ? propietario.usuario_id : propietario.visitante_id;
+        const identidadActual = usuarioId || visitanteId;
+        if (Number(propietarioId) !== Number(identidadActual)) {
             throw crearError('No tienes permiso para modificar esta reseña.', 403);
         }
 
         const datosActualizar = new ResenaActualizarDTO(datos);
-        await this.resenaRepositorio.actualizarPropia(id, usuarioId, datosActualizar.data);
+        await this.resenaRepositorio.actualizarPropia(id, usuarioId, visitanteId, datosActualizar.data);
 
-        const resena = await this.resenaRepositorio.buscarPropiaPorId(id, usuarioId);
+        const resena = await this.resenaRepositorio.buscarPropiaPorId(id, usuarioId, visitanteId);
         if (!resena) {
             throw crearError('Reseña no encontrada.', 404);
         }
         return mapearResena(resena);
     }
 
-    async eliminar(id, usuarioId) {
+    async eliminar(id, identidad) {
+        const { usuarioId, visitanteId } = this.obtenerIdsIdentidad(identidad);
         const propietario = await this.resenaRepositorio.buscarPropietario(id);
         if (!propietario) {
             throw crearError('Reseña no encontrada.', 404);
         }
-        if (Number(propietario.usuario_id) !== Number(usuarioId)) {
+        const propietarioId = usuarioId ? propietario.usuario_id : propietario.visitante_id;
+        const identidadActual = usuarioId || visitanteId;
+        if (Number(propietarioId) !== Number(identidadActual)) {
             throw crearError('No tienes permiso para eliminar esta reseña.', 403);
         }
 
-        const eliminada = await this.resenaRepositorio.eliminarPropia(id, usuarioId);
+        const eliminada = await this.resenaRepositorio.eliminarPropia(id, usuarioId, visitanteId);
         if (!eliminada) {
             throw crearError('Reseña no encontrada.', 404);
         }

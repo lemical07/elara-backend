@@ -21,21 +21,24 @@ class ResenaRepositorio {
         return filas[0] ?? null;
     }
 
-    async buscarPorUsuarioYContenido(usuarioId, contenidoId) {
+    async buscarPorIdentidadYContenido(usuarioId, visitanteId, contenidoId) {
+        const columnaIdentidad = usuarioId ? 'usuario_id' : 'visitante_id';
+        const idIdentidad = usuarioId || visitanteId;
         const [filas] = await pool.execute(
             `SELECT id
              FROM review
-             WHERE usuario_id = ? AND contenido_id = ?`,
-            [usuarioId, contenidoId]
+             WHERE ${columnaIdentidad} = ? AND contenido_id = ?`,
+            [idIdentidad, contenidoId]
         );
         return filas[0] ?? null;
     }
 
-    async crear({ usuario_id, contenido_id, titulo, comentario, calificacion }) {
+    async crear({ usuario_id, visitante_id, contenido_id, nombre_visitante, titulo, comentario, calificacion }) {
         const [resultado] = await pool.execute(
-            `INSERT INTO review (usuario_id, contenido_id, titulo, comentario, calificacion)
-             VALUES (?, ?, ?, ?, ?)`,
-            [usuario_id, contenido_id, titulo, comentario, calificacion]
+            `INSERT INTO review
+                (usuario_id, visitante_id, contenido_id, nombre_visitante, titulo, comentario, calificacion)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [usuario_id, visitante_id, contenido_id, nombre_visitante, titulo, comentario, calificacion]
         );
         return resultado.insertId;
     }
@@ -44,9 +47,14 @@ class ResenaRepositorio {
         const [filas] = await pool.execute(
             `SELECT r.id, r.contenido_id, c.titulo AS contenido_titulo,
                     r.titulo, r.comentario, r.calificacion, r.creado_en, r.actualizado_en,
-                    u.nombre AS autor_nombre, u.apellido AS autor_apellido
+                    COALESCE(
+                        NULLIF(r.nombre_visitante, ''),
+                        NULLIF(CONCAT_WS(' ', u.nombre, u.apellido), ''),
+                        'Anónimo'
+                    ) AS autor_nombre,
+                    u.apellido AS autor_apellido
              FROM review r
-             INNER JOIN usuario u ON u.id = r.usuario_id
+             LEFT JOIN usuario u ON u.id = r.usuario_id
              INNER JOIN contenido c ON c.id = r.contenido_id
              WHERE r.contenido_id = ? AND c.estado = 'aprobado'
              ORDER BY r.creado_en DESC, r.id DESC`,
@@ -55,17 +63,24 @@ class ResenaRepositorio {
         return filas;
     }
 
-    async buscarResenasPorUsuario(usuarioId) {
+    async buscarResenasPorIdentidad(usuarioId, visitanteId) {
+        const columnaIdentidad = usuarioId ? 'r.usuario_id' : 'r.visitante_id';
+        const idIdentidad = usuarioId || visitanteId;
         const [filas] = await pool.execute(
             `SELECT r.id, r.contenido_id, c.titulo AS contenido_titulo,
                     r.titulo, r.comentario, r.calificacion, r.creado_en, r.actualizado_en,
-                    u.nombre AS autor_nombre, u.apellido AS autor_apellido
+                    COALESCE(
+                        NULLIF(r.nombre_visitante, ''),
+                        NULLIF(CONCAT_WS(' ', u.nombre, u.apellido), ''),
+                        'Anónimo'
+                    ) AS autor_nombre,
+                    u.apellido AS autor_apellido
              FROM review r
-             INNER JOIN usuario u ON u.id = r.usuario_id
+             LEFT JOIN usuario u ON u.id = r.usuario_id
              INNER JOIN contenido c ON c.id = r.contenido_id
-             WHERE r.usuario_id = ? AND c.estado = 'aprobado'
+             WHERE ${columnaIdentidad} = ? AND c.estado = 'aprobado'
              ORDER BY r.creado_en DESC, r.id DESC`,
-            [usuarioId]
+            [idIdentidad]
         );
         return filas;
     }
@@ -74,9 +89,14 @@ class ResenaRepositorio {
         const [filas] = await pool.execute(
             `SELECT r.id, r.contenido_id, c.titulo AS contenido_titulo,
                     r.titulo, r.comentario, r.calificacion, r.creado_en, r.actualizado_en,
-                    u.nombre AS autor_nombre, u.apellido AS autor_apellido
+                    COALESCE(
+                        NULLIF(r.nombre_visitante, ''),
+                        NULLIF(CONCAT_WS(' ', u.nombre, u.apellido), ''),
+                        'Anónimo'
+                    ) AS autor_nombre,
+                    u.apellido AS autor_apellido
              FROM review r
-             INNER JOIN usuario u ON u.id = r.usuario_id
+             LEFT JOIN usuario u ON u.id = r.usuario_id
              INNER JOIN contenido c ON c.id = r.contenido_id
              WHERE r.id = ? AND c.estado = 'aprobado'`,
             [id]
@@ -86,7 +106,7 @@ class ResenaRepositorio {
 
     async buscarPropietario(id) {
         const [filas] = await pool.execute(
-            `SELECT usuario_id
+            `SELECT usuario_id, visitante_id
              FROM review
              WHERE id = ?`,
             [id]
@@ -94,7 +114,7 @@ class ResenaRepositorio {
         return filas[0] ?? null;
     }
 
-    async actualizarPropia(id, usuarioId, datos) {
+    async actualizarPropia(id, usuarioId, visitanteId, datos) {
         const valores = [];
         const asignaciones = [];
 
@@ -105,35 +125,46 @@ class ResenaRepositorio {
             }
         }
 
-        valores.push(id, usuarioId);
+        const columnaIdentidad = usuarioId ? 'usuario_id' : 'visitante_id';
+        const idIdentidad = usuarioId || visitanteId;
+        valores.push(id, idIdentidad);
         const [resultado] = await pool.execute(
             `UPDATE review
              SET ${asignaciones.join(', ')}
-             WHERE id = ? AND usuario_id = ?`,
+             WHERE id = ? AND ${columnaIdentidad} = ?`,
             valores
         );
         return resultado.affectedRows > 0;
     }
 
-    async buscarPropiaPorId(id, usuarioId) {
+    async buscarPropiaPorId(id, usuarioId, visitanteId) {
+        const columnaIdentidad = usuarioId ? 'r.usuario_id' : 'r.visitante_id';
+        const idIdentidad = usuarioId || visitanteId;
         const [filas] = await pool.execute(
             `SELECT r.id, r.contenido_id, c.titulo AS contenido_titulo,
                     r.titulo, r.comentario, r.calificacion, r.creado_en, r.actualizado_en,
-                    u.nombre AS autor_nombre, u.apellido AS autor_apellido
+                    COALESCE(
+                        NULLIF(r.nombre_visitante, ''),
+                        NULLIF(CONCAT_WS(' ', u.nombre, u.apellido), ''),
+                        'Anónimo'
+                    ) AS autor_nombre,
+                    u.apellido AS autor_apellido
              FROM review r
-             INNER JOIN usuario u ON u.id = r.usuario_id
+             LEFT JOIN usuario u ON u.id = r.usuario_id
              INNER JOIN contenido c ON c.id = r.contenido_id
-             WHERE r.id = ? AND r.usuario_id = ?`,
-            [id, usuarioId]
+             WHERE r.id = ? AND ${columnaIdentidad} = ? AND c.estado = 'aprobado'`,
+            [id, idIdentidad]
         );
         return filas[0] ?? null;
     }
 
-    async eliminarPropia(id, usuarioId) {
+    async eliminarPropia(id, usuarioId, visitanteId) {
+        const columnaIdentidad = usuarioId ? 'usuario_id' : 'visitante_id';
+        const idIdentidad = usuarioId || visitanteId;
         const [resultado] = await pool.execute(
             `DELETE FROM review
-             WHERE id = ? AND usuario_id = ?`,
-            [id, usuarioId]
+             WHERE id = ? AND ${columnaIdentidad} = ?`,
+            [id, idIdentidad]
         );
         return resultado.affectedRows > 0;
     }

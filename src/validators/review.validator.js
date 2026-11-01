@@ -1,6 +1,6 @@
 import { body, param } from 'express-validator';
 
-const camposPermitidos = new Set(['contenido_id', 'titulo', 'comentario', 'calificacion']);
+const camposPermitidos = new Set(['contenido_id', 'titulo', 'comentario', 'calificacion', 'nombre_visitante']);
 const camposActualizables = new Set(['titulo', 'comentario', 'calificacion']);
 
 const validarCuerpo = campos => body().custom((_, { req }) => {
@@ -30,7 +30,13 @@ export const ResenaCrearValidaciones = [
         .isString().withMessage('El comentario debe ser texto.'),
     body('calificacion')
         .custom(valor => typeof valor === 'number' && Number.isInteger(valor) && valor >= 1 && valor <= 10)
-        .withMessage('La calificación debe ser un número entero entre 1 y 10.')
+        .withMessage('La calificación debe ser un número entero entre 1 y 10.'),
+    body('nombre_visitante')
+        .optional()
+        .isString().withMessage('El nombre del visitante debe ser texto.')
+        .trim()
+        .notEmpty().withMessage('El nombre del visitante no puede estar vacío.')
+        .isLength({ max: 60 }).withMessage('El nombre del visitante no puede superar 60 caracteres.')
 ];
 
 export const ResenaIdValidaciones = [

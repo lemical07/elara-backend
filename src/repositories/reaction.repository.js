@@ -12,12 +12,12 @@ class ReaccionRepositorio {
         return filas[0] ?? null;
     }
 
-    async registrarOActualizar(usuarioId, resenaId, tipo) {
+    async registrarOActualizar(usuarioId, visitanteId, resenaId, tipo) {
         const [resultado] = await pool.execute(
-            `INSERT INTO reaccion (usuario_id, review_id, tipo)
-             VALUES (?, ?, ?)
+            `INSERT INTO reaccion (usuario_id, visitante_id, review_id, tipo)
+             VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE tipo = IF(tipo <> VALUES(tipo), VALUES(tipo), tipo)`,
-            [usuarioId, resenaId, tipo]
+            [usuarioId, visitanteId, resenaId, tipo]
         );
 
         return {
@@ -26,31 +26,37 @@ class ReaccionRepositorio {
         };
     }
 
-    async buscarPropia(usuarioId, resenaId) {
+    async buscarPropia(usuarioId, visitanteId, resenaId) {
+        const columnaIdentidad = usuarioId ? 'usuario_id' : 'visitante_id';
+        const idIdentidad = usuarioId || visitanteId;
         const [filas] = await pool.execute(
             `SELECT review_id, tipo
              FROM reaccion
-             WHERE usuario_id = ? AND review_id = ?`,
-            [usuarioId, resenaId]
+             WHERE ${columnaIdentidad} = ? AND review_id = ?`,
+            [idIdentidad, resenaId]
         );
         return filas[0] ?? null;
     }
 
-    async actualizarPropia(usuarioId, resenaId, tipo) {
+    async actualizarPropia(usuarioId, visitanteId, resenaId, tipo) {
+        const columnaIdentidad = usuarioId ? 'usuario_id' : 'visitante_id';
+        const idIdentidad = usuarioId || visitanteId;
         const [resultado] = await pool.execute(
             `UPDATE reaccion
              SET tipo = ?
-             WHERE usuario_id = ? AND review_id = ?`,
-            [tipo, usuarioId, resenaId]
+             WHERE ${columnaIdentidad} = ? AND review_id = ?`,
+            [tipo, idIdentidad, resenaId]
         );
         return resultado.affectedRows > 0;
     }
 
-    async eliminarPropia(usuarioId, resenaId) {
+    async eliminarPropia(usuarioId, visitanteId, resenaId) {
+        const columnaIdentidad = usuarioId ? 'usuario_id' : 'visitante_id';
+        const idIdentidad = usuarioId || visitanteId;
         const [resultado] = await pool.execute(
             `DELETE FROM reaccion
-             WHERE usuario_id = ? AND review_id = ?`,
-            [usuarioId, resenaId]
+             WHERE ${columnaIdentidad} = ? AND review_id = ?`,
+            [idIdentidad, resenaId]
         );
         return resultado.affectedRows > 0;
     }
@@ -67,7 +73,9 @@ class ReaccionRepositorio {
         return filas[0];
     }
 
-    async listarPropias(usuarioId) {
+    async listarPropias(usuarioId, visitanteId) {
+        const columnaIdentidad = usuarioId ? 'r.usuario_id' : 'r.visitante_id';
+        const idIdentidad = usuarioId || visitanteId;
         const [filas] = await pool.execute(
             `SELECT r.review_id, r.tipo,
                     v.titulo AS review_titulo,
@@ -76,9 +84,9 @@ class ReaccionRepositorio {
              FROM reaccion r
              INNER JOIN review v ON v.id = r.review_id
              INNER JOIN contenido c ON c.id = v.contenido_id
-             WHERE r.usuario_id = ? AND c.estado = 'aprobado'
+             WHERE ${columnaIdentidad} = ? AND c.estado = 'aprobado'
              ORDER BY r.review_id DESC`,
-            [usuarioId]
+            [idIdentidad]
         );
         return filas;
     }

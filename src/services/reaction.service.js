@@ -19,23 +19,35 @@ export class ReaccionServicio {
         this.reaccionRepositorio = repositorio;
     }
 
+    obtenerIdsIdentidad(identidad) {
+        const usuarioId = identidad.usuarioId ?? null;
+        const visitanteId = identidad.visitanteId ?? null;
+        if (Boolean(usuarioId) === Boolean(visitanteId)) {
+            throw crearError('Se requiere una sola identidad para esta operación.', 401);
+        }
+        return { usuarioId, visitanteId };
+    }
+
     async verificarResena(resenaId, usuarioId) {
         const resena = await this.reaccionRepositorio.buscarResenaVisible(resenaId);
         if (!resena) {
             throw crearError('Reseña no encontrada.', 404);
         }
-        if (usuarioId !== undefined && Number(resena.usuario_id) === Number(usuarioId)) {
+        if (usuarioId !== null && usuarioId !== undefined &&
+            Number(resena.usuario_id) === Number(usuarioId)) {
             throw crearError('No puedes reaccionar a tu propia reseña.', 403);
         }
         return resena;
     }
 
-    async registrar(usuarioId, datos) {
+    async registrar(identidad, datos) {
+        const { usuarioId, visitanteId } = this.obtenerIdsIdentidad(identidad);
         const reaccionDTO = new ReaccionCrearDTO(datos);
         await this.verificarResena(reaccionDTO.review_id, usuarioId);
 
         const resultado = await this.reaccionRepositorio.registrarOActualizar(
             usuarioId,
+            visitanteId,
             reaccionDTO.review_id,
             reaccionDTO.tipo
         );
@@ -51,10 +63,11 @@ export class ReaccionServicio {
         };
     }
 
-    async actualizar(usuarioId, resenaId, datos) {
+    async actualizar(identidad, resenaId, datos) {
+        const { usuarioId, visitanteId } = this.obtenerIdsIdentidad(identidad);
         await this.verificarResena(resenaId, usuarioId);
 
-        const reaccionActual = await this.reaccionRepositorio.buscarPropia(usuarioId, resenaId);
+        const reaccionActual = await this.reaccionRepositorio.buscarPropia(usuarioId, visitanteId, resenaId);
         if (!reaccionActual) {
             throw crearError('No tienes una reacción para esta reseña.', 404);
         }
@@ -62,10 +75,11 @@ export class ReaccionServicio {
         const actualizacion = new ReaccionActualizarDTO(datos).data;
         const cambio = await this.reaccionRepositorio.actualizarPropia(
             usuarioId,
+            visitanteId,
             resenaId,
             actualizacion.tipo
         );
-        if (!cambio && !(await this.reaccionRepositorio.buscarPropia(usuarioId, resenaId))) {
+        if (!cambio && !(await this.reaccionRepositorio.buscarPropia(usuarioId, visitanteId, resenaId))) {
             throw crearError('No tienes una reacción para esta reseña.', 404);
         }
 
@@ -77,10 +91,11 @@ export class ReaccionServicio {
         };
     }
 
-    async eliminar(usuarioId, resenaId) {
+    async eliminar(identidad, resenaId) {
+        const { usuarioId, visitanteId } = this.obtenerIdsIdentidad(identidad);
         await this.verificarResena(resenaId, usuarioId);
 
-        const eliminada = await this.reaccionRepositorio.eliminarPropia(usuarioId, resenaId);
+        const eliminada = await this.reaccionRepositorio.eliminarPropia(usuarioId, visitanteId, resenaId);
         if (!eliminada) {
             throw crearError('No tienes una reacción para esta reseña.', 404);
         }
@@ -92,8 +107,9 @@ export class ReaccionServicio {
         return new ReaccionResumenDTO(totales).data;
     }
 
-    async listarPropias(usuarioId) {
-        const reacciones = await this.reaccionRepositorio.listarPropias(usuarioId);
+    async listarPropias(identidad) {
+        const { usuarioId, visitanteId } = this.obtenerIdsIdentidad(identidad);
+        const reacciones = await this.reaccionRepositorio.listarPropias(usuarioId, visitanteId);
         return reacciones.map(reaccion => new ReaccionObtenerDTO(reaccion).data);
     }
 }
