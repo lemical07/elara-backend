@@ -1,60 +1,42 @@
 # ELARA Backend
 
-API REST para un catálogo de películas, series y anime.
+API REST de ELARA para autenticación, usuarios, catálogo de películas, series y anime, propuestas, reseñas y reacciones. Está construida con Node.js, Express 5 y MySQL.
 
-## Descripción
+## Contenido
 
-ELARA Backend es el componente encargado de gestionar la lógica del servidor, procesar solicitudes HTTP y proporcionar los datos necesarios para la aplicación ELARA.
-
-El proyecto se desarrolla con Node.js y Express, utilizando MySQL como sistema de gestión de bases de datos. También cuenta con una configuración de Docker para ejecutar el backend y la base de datos en contenedores independientes.
-
-Actualmente, el proyecto dispone de una estructura inicial, configuración de dependencias, variables de entorno, un servidor Express funcional y configuración para Docker. Las funcionalidades del catálogo y la integración con MySQL se implementarán progresivamente.
-
-## Tecnologías
-
-- **Node.js:** entorno de ejecución de JavaScript.
-- **Express:** framework para construir la API REST.
-- **MySQL:** sistema de gestión de bases de datos.
-- **mysql2:** controlador para conectar Node.js con MySQL.
-- **dotenv:** carga de variables de entorno.
-- **Docker:** ejecución del backend y MySQL en contenedores.
-- **Postman:** herramienta para probar los endpoints de la API.
-- **Git:** control de versiones.
+- [Requisitos](#requisitos)
+- [Instalación y configuración](#instalación-y-configuración)
+- [Ejecución local](#ejecución-local)
+- [Ejecución con Docker Compose](#ejecución-con-docker-compose)
+- [Uso de la API](#uso-de-la-api)
+- [Referencia completa de endpoints](#referencia-completa-de-endpoints)
+- [Validación, errores y límites](#validación-errores-y-límites)
+- [Modelo de datos y estructura](#modelo-de-datos-y-estructura)
+- [Pruebas](#pruebas)
 
 ## Requisitos
 
-Para trabajar con el proyecto se necesita:
+Para ejecutar el backend localmente:
 
-- Git.
-- Node.js y npm para la ejecución local.
-- MySQL para la ejecución local, o Docker Desktop para ejecutar el backend y la base de datos en contenedores.
-- Postman para las pruebas HTTP.
+- Node.js 22 o compatible con las dependencias del proyecto.
+- npm.
+- MySQL 8.x accesible desde el equipo.
 
-## Instalación del proyecto
+Alternativamente, para ejecutar la aplicación y MySQL en contenedores:
 
-### 1. Clonar el repositorio
+- Docker Desktop o Docker Engine con Docker Compose.
 
-Abre una terminal y ejecuta:
+## Instalación y configuración
+
+Clona el repositorio e instala las dependencias:
 
 ```bash
 git clone https://github.com/lemical07/elara-backend.git
-```
-
-Accede a la carpeta del proyecto:
-
-```bash
 cd elara-backend
-```
-
-### 2. Instalar las dependencias
-
-```bash
 npm install
 ```
 
-### 3. Configurar las variables de entorno
-
-Crea el archivo `.env` a partir de `.env.example`.
+Crea la configuración local a partir del ejemplo.
 
 En PowerShell:
 
@@ -62,293 +44,328 @@ En PowerShell:
 Copy-Item .env.example .env
 ```
 
-En Git Bash, Linux o macOS:
+En Bash:
 
 ```bash
 cp .env.example .env
 ```
 
-Después, abre `.env` y configura los valores necesarios para el entorno que utilizarás.
+Edita `.env` con credenciales válidas para tu entorno. No compartas ni subas ese archivo al repositorio.
 
-> El archivo `.env` contiene configuración local y credenciales. No debe subirse al repositorio.
+| Variable | Uso | Valor de referencia |
+|---|---|---|
+| `PORT` | Puerto HTTP del backend. | `3000` |
+| `SERVER_PORT` | Puerto alternativo si `PORT` no está definido. | No definido por defecto |
+| `JWT_SECRET` | Secreto privado usado para firmar y verificar JWT. | Define un secreto largo y aleatorio |
+| `JWT_EXPIRES_IN` | Vigencia del JWT, según el formato aceptado por `jsonwebtoken`. | `1h` |
+| `DB_HOST` | Host de MySQL. | `localhost` en ejecución local; `mysql` en Docker Compose |
+| `DB_PORT` | Puerto de MySQL. | `3306` |
+| `DB_NAME` | Base de datos. | `elara_db` |
+| `DB_USER` | Usuario de MySQL de la aplicación. | Un usuario con permisos sobre `elara_db` |
+| `DB_PASSWORD` | Contraseña de ese usuario. | Secreto del entorno |
+| `MYSQL_ROOT_PASSWORD` | Contraseña root del contenedor MySQL. Requerida por Compose. | Secreto del entorno |
+| `DB_EXTERNAL_PORT` | Puerto local publicado para MySQL por Compose. | `3307` |
 
-## Configuración de variables de entorno
-
-El proyecto utiliza variables de entorno para separar la configuración del código fuente.
-
-Ejemplo para ejecutar ELARA directamente en Windows con una instalación local de MySQL:
-
-```dotenv
-PORT=3000
-
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=elara
-DB_USER=tu_usuario_mysql
-DB_PASSWORD=tu_contraseña_mysql
-```
-
-Los valores deben corresponder a la instalación de MySQL que se utilizará. La base de datos `elara` debe existir antes de que la aplicación pueda conectarse a ella.
-
-Para Docker, `DB_HOST` debe corresponder al nombre del servicio MySQL definido en `compose.yaml`, normalmente `mysql`. Además, el archivo `.env` debe incluir las variables requeridas para inicializar el contenedor, como las contraseñas de MySQL y el puerto externo.
-
-**Importante:** copiar `.env.example` crea el archivo `.env`, pero no configura automáticamente las credenciales reales ni crea la base de datos para una instalación local.
+`PORT` y `SERVER_PORT` determinan el puerto HTTP del proceso Express en ese orden. En Docker Compose, el contenedor escucha en el puerto `3000`; `PORT` configura el puerto publicado en el equipo anfitrión.
 
 ## Ejecución local
 
-### 1. Configurar MySQL
+1. Inicia MySQL y configura las variables `DB_*` en `.env`.
+2. Crea el esquema:
 
-Asegúrate de que MySQL esté ejecutándose y de que la base de datos exista.
+   ```bash
+   mysql -u root -p < database/ddl/schema.sql
+   ```
 
-Configura en `.env` el host, el puerto, el nombre de la base de datos y las credenciales correspondientes.
+   El script crea la base `elara_db` y sus tablas.
+3. Opcionalmente, carga los datos de ejemplo:
 
-### 2. Iniciar el servidor
+   ```bash
+   mysql -u root -p elara_db < database/dml/insert.sql
+   ```
 
-Desde la raíz del proyecto, ejecuta:
+   Ejecuta el seed solo en una base vacía o de pruebas: contiene inserciones con identificadores fijos y puede fallar si esos registros ya existen. Los hashes de contraseña del archivo son marcadores de ejemplo, no credenciales utilizables.
+4. Inicia el servidor desde la raíz del proyecto:
 
-```bash
-npm run dev
-```
+   ```bash
+   npm run dev
+   ```
 
-Este comando requiere que el script `dev` esté definido en `package.json`.
+   `npm run dev` inicia `nodemon src/app.js`. También puedes ejecutar el proceso directamente:
 
-Si todavía no está configurado, puedes iniciar directamente el servidor con:
+   ```bash
+   node src/app.js
+   ```
 
-```bash
-node src/app.js
-```
+El servidor escucha por defecto en `http://localhost:3000`. Verifica su disponibilidad en `http://localhost:3000/health`. Este endpoint confirma que Express responde, pero **no** comprueba la conexión a MySQL.
 
-Si el servidor inicia correctamente, se mostrará un mensaje indicando el puerto en el que está escuchando.
+## Ejecución con Docker Compose
 
-## Ejecución con Docker
-
-Docker permite ejecutar el backend y MySQL sin tener que iniciar ambos servicios manualmente.
-
-Asegúrate de que Docker Desktop esté en ejecución y de que el archivo `.env` contenga las variables requeridas por `compose.yaml`.
-
-### 1. Construir e iniciar los servicios
-
-Desde la raíz del proyecto:
+Configura `.env`, incluyendo `MYSQL_ROOT_PASSWORD`, `DB_USER` y `DB_PASSWORD`, y desde la raíz ejecuta:
 
 ```bash
 docker compose up --build -d
-```
-
-Este comando construye la imagen del backend e inicia los contenedores en segundo plano.
-
-### 2. Comprobar el estado
-
-```bash
 docker compose ps
 ```
 
-Comprueba que el backend esté ejecutándose y que MySQL alcance el estado `healthy`.
+Compose inicia el backend y MySQL. MySQL se publica únicamente en `127.0.0.1`, por defecto en el puerto `3307`; el backend se publica por defecto en el puerto `3000`. El contenedor espera a que el health check de MySQL indique que está disponible.
 
-Si algún servicio falla, consulta sus registros:
+En un volumen MySQL nuevo, el contenedor ejecuta `database/ddl/schema.sql` al inicializarse. El archivo `database/dml/insert.sql` no se carga automáticamente; si necesitas datos de ejemplo, ejecútalo manualmente una sola vez:
+
+```bash
+docker compose exec -T mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" elara_db < /seed/insert.sql'
+```
+
+Consulta los registros si un servicio no inicia:
 
 ```bash
 docker compose logs --tail=50 backend
-```
-
-```bash
 docker compose logs --tail=50 mysql
 ```
 
-### 3. Detener los servicios
-
-Cuando termines de trabajar:
+Detén los contenedores conservando los datos:
 
 ```bash
 docker compose down
 ```
 
-Este comando detiene y elimina los contenedores, pero conserva el volumen persistente de MySQL.
+Esto conserva el volumen `elara_mysql_data`. **No uses `docker compose down -v`** salvo que quieras eliminar deliberadamente ese volumen y los datos persistidos. Los scripts de inicialización no vuelven a ejecutarse sobre un volumen ya existente.
 
-**No utilices `docker compose down -v` salvo que quieras eliminar deliberadamente el volumen y los datos almacenados.**
+## Uso de la API
 
-### Consideraciones de red
+### Direcciones
 
-- El puerto publicado para el backend debe estar disponible en el equipo.
-- Si el servidor local ya ocupa el puerto `3000`, debes detenerlo antes de iniciar Docker con ese mismo puerto.
-- Dentro de Docker, el backend debe conectarse a MySQL mediante el nombre del servicio, normalmente `mysql`, y el puerto interno `3306`.
-- Para una ejecución local, normalmente se utiliza `localhost` como host de MySQL.
-
-## Estructura del proyecto
-
-```text
-elara-backend/
-├── src/
-│   ├── config/
-│   ├── controllers/
-│   ├── dtos/
-│   ├── factories/
-│   ├── middleware/
-│   ├── models/
-│   ├── repositories/
-│   ├── routes/
-│   ├── services/
-│   ├── utils/
-│   ├── validators/
-│   └── app.js
-├── database/
-│   └── schema.sql
-├── tests/
-│   ├── integration/
-│   └── unit/
-├── docs/
-├── scripts/
-├── .dockerignore
-├── .env.example
-├── .gitignore
-├── Dockerfile
-├── compose.yaml
-├── package.json
-└── README.md
-```
-
-> La estructura representa la organización prevista del proyecto. La existencia de una carpeta no implica que sus funcionalidades estén implementadas. El archivo `.env` se crea localmente y no debe subirse al repositorio.
-
-## Responsabilidades de las carpetas
-
-| Carpeta o archivo | Responsabilidad |
+| Recurso | URL predeterminada |
 |---|---|
-| `src/config/` | Configuración de la aplicación y de los servicios externos. |
-| `src/controllers/` | Recepción de solicitudes HTTP y construcción de respuestas. |
-| `src/dtos/` | Definición de los objetos utilizados para transferir datos. |
-| `src/factories/` | Creación de objetos cuando sea necesario centralizar su construcción. |
-| `src/middleware/` | Procesamiento intermedio de solicitudes, autenticación y manejo de errores. |
-| `src/models/` | Representación de las entidades del dominio. |
-| `src/repositories/` | Acceso y persistencia de datos. |
-| `src/routes/` | Definición y organización de los endpoints. |
-| `src/services/` | Implementación de las reglas de negocio. |
-| `src/utils/` | Funciones auxiliares reutilizables. |
-| `src/validators/` | Validación de datos de entrada. |
-| `database/` | Archivos relacionados con el esquema de la base de datos. |
-| `tests/unit/` | Pruebas de unidades individuales. |
-| `tests/integration/` | Pruebas de interacción entre componentes. |
-| `docs/` | Documentación técnica complementaria. |
-| `scripts/` | Scripts auxiliares para tareas de desarrollo y mantenimiento. |
+| API REST | `http://localhost:3000/api` |
+| Comprobación del proceso | `http://localhost:3000/health` |
+| Swagger UI | `http://localhost:3000/api-docs` |
 
-## Archivo `package.json`
+El puerto puede cambiarse mediante `PORT` o `SERVER_PORT`. Sustituye `3000` en las URLs si el servidor usa otro puerto.
 
-El archivo `package.json` contiene los metadatos del proyecto, las dependencias y los scripts disponibles para ejecutar tareas.
+### Integración con ELARA Frontend
 
-Las dependencias del proyecto incluyen:
+El frontend se mantiene en un repositorio independiente: [lemical07/elara-frontend](https://github.com/lemical07/elara-frontend). La referencia de integración documentada es el commit [`0f668df2d2ca645f522397c4268c7d0b40f84902`](https://github.com/lemical07/elara-frontend/commit/0f668df2d2ca645f522397c4268c7d0b40f84902).
 
-- `express`: creación del servidor y gestión de rutas HTTP.
-- `mysql2`: controlador para conectar Node.js con MySQL.
-- `dotenv`: lectura de variables de entorno.
-- `nodemon`: herramienta de desarrollo para reiniciar el servidor cuando cambian los archivos.
+En desarrollo local, el servidor nativo `server.mjs` del frontend sirve la interfaz en `http://localhost:5500` y actúa como proxy para las solicitudes con el prefijo público `/elara`. Reenvía al backend sustituyendo únicamente ese prefijo por `/api`; el backend conserva sin cambios sus rutas y contratos:
 
-Los comandos disponibles dependen de los scripts definidos en `package.json`.
+| Solicitud del navegador | Ruta que recibe el backend |
+|---|---|
+| `/elara/auth/login` | `http://localhost:3000/api/auth/login` |
+| `/elara/auth/me` | `http://localhost:3000/api/auth/me` |
 
-## Endpoints disponibles
+Para ejecutar la integración:
 
-### Comprobación del servidor
+1. Inicia el backend según [Ejecución local](#ejecución-local), normalmente en `http://localhost:3000`.
+2. Desde la raíz del repositorio frontend ejecuta `node server.mjs` y abre `http://localhost:5500`.
+3. Comprueba el servicio mediante `http://localhost:5500/elara/auth/me`. Sin una sesión autenticada, el backend puede responder `401`; esa respuesta confirma que la solicitud llegó al endpoint protegido.
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| `GET` | `/health` | Comprueba que el servidor Express está respondiendo. |
+El proxy local conserva el método, la ruta restante, los parámetros de consulta, el cuerpo y los encabezados de solicitud; transmite la respuesta y `Set-Cookie`. El JWT continúa verificándose en el backend. Este servidor es una herramienta de desarrollo, no un componente de producción. En producción, el frontend y la API deben publicarse bajo una configuración de mismo origen o una infraestructura que enrute las solicitudes y configure CORS explícitamente si los orígenes son distintos.
 
-**Solicitud en Postman:**
+### Solicitudes y autenticación
+
+- Las rutas con cuerpo JSON esperan `Content-Type: application/json`.
+- Las rutas protegidas requieren `Authorization: Bearer <token>`.
+- Obtén el token mediante `POST /api/auth/register` o `POST /api/auth/login`. El registro asigna el rol predeterminado del backend; el cliente no puede enviar un rol.
+- La autenticación opcional de reseñas y reacciones acepta un JWT válido o identifica a visitantes mediante la cookie `elara_visitante`.
+- El backend crea esa cookie para visitantes con `HttpOnly`, `SameSite=Lax`, `Path=/` y duración de un año. `Secure` depende de que la solicitud llegue como HTTPS según `req.secure`.
+- Los clientes web que usen la cookie deben enviar credenciales. Este backend no configura CORS; el frontend debe compartir origen con la API o el despliegue debe configurar CORS explícitamente con orígenes permitidos y credenciales.
+- No existe un endpoint de cierre de sesión ni revocación del JWT. El cliente debe descartar su token al cerrar sesión.
+
+### Ejemplo de inicio de sesión
 
 ```http
-GET http://localhost:3000/health
+POST /api/auth/login
+Content-Type: application/json
 ```
-
-**Respuesta esperada:**
 
 ```json
 {
-  "estado": "Prueba Aprovado",
-  "mensaje": "ELARA Backend en funcionamiento"
+  "correo": "ana@example.com",
+  "contrasena": "ClaveSegura123"
 }
 ```
 
-El endpoint devuelve `200 OK` cuando el servidor está activo. Esta comprobación no valida por sí sola la conexión con MySQL ni la disponibilidad de las tablas.
+La respuesta correcta incluye `datos.usuario` y `datos.token`. Envía ese token en el encabezado `Authorization` para las operaciones protegidas.
 
-Las rutas del catálogo se documentarán a medida que sean implementadas.
+### Versión de API
 
-## Pruebas realizadas
+Las solicitudes bajo `/api` pueden incluir `X-API-Version` con una versión semver. Si se omite, el backend usa la versión de `package.json` (`1.0.0`). El servidor responde con la versión vigente en la cabecera `X-API-Version`; una versión inválida responde `400` y una versión no compatible responde `406`.
 
-Se realizaron pruebas manuales de arranque y respuesta HTTP utilizando Postman.
+## Referencia completa de endpoints
 
-- **Ejecución local:** el servidor Express inició y respondió a la petición de comprobación.
-- **Ejecución con Docker:** se comprobó el funcionamiento del backend y el estado saludable del contenedor de MySQL después de corregir la configuración de las variables de entorno.
-- **Respuesta HTTP:** el endpoint `GET /health` respondió correctamente en ambos entornos.
+En las tablas, `{id}`, `{contenidoId}`, `{reviewId}` y `{personajeId}` representan identificadores enteros positivos. Las rutas se muestran desde la raíz del servidor; por ejemplo, `GET /api/auth/me`.
 
-Estas pruebas verifican el arranque del servidor y su disponibilidad HTTP. No representan todavía pruebas de integración con la base de datos ni pruebas automatizadas de la lógica de negocio.
+### Salud y documentación
 
-## Arquitectura y criterios de diseño
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `GET` | `/health` | Público | Comprueba que Express responde. No consulta MySQL. |
+| `GET` | `/api-docs` | Público | Interfaz Swagger UI. |
 
-El proyecto seguirá una separación de responsabilidades inspirada en MVC y programación orientada a objetos.
+### Autenticación
 
-Se utilizarán los siguientes criterios:
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Público | Registra un usuario y genera un JWT. |
+| `POST` | `/api/auth/login` | Público | Valida credenciales y genera un JWT. |
+| `GET` | `/api/auth/me` | JWT | Devuelve la sesión y el perfil autenticados. |
 
-- **DTO:** para estructurar los datos transferidos entre capas cuando sea necesario.
-- **Repository:** para aislar el acceso a los datos y las consultas a MySQL.
-- **Factory Method:** cuando exista una necesidad justificada de centralizar la creación de objetos.
-- **Middleware:** para tareas transversales como el manejo de errores y la validación de solicitudes.
+El registro requiere exactamente `nombre`, `apellido`, `correo` y `contrasena`. El inicio de sesión requiere exactamente `correo` y `contrasena`. La contraseña debe tener al menos 8 caracteres y no superar 72 bytes. Las contraseñas se almacenan con hash; nunca envíes campos de rol o estado.
 
-Los patrones se aplicarán de acuerdo con la arquitectura definida para ELARA, evitando complejidad innecesaria.
+### Usuarios
 
-## Documentación de la API con Swagger
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `GET` | `/api/usuarios/me` | JWT | Consulta el perfil propio. |
+| `PUT` | `/api/usuarios/me` | JWT | Actualiza uno o más de `nombre`, `apellido` y `correo`. |
+| `PATCH` | `/api/usuarios/me/contrasena` | JWT | Cambia la contraseña propia. Requiere `contrasena_actual` y `contrasena_nueva`. |
+| `DELETE` | `/api/usuarios/me` | JWT | Desactiva la cuenta propia. |
+| `DELETE` | `/api/usuarios/me/permanente` | JWT | Elimina permanentemente la cuenta propia. Requiere `contrasena_actual`. |
+| `GET` | `/api/usuarios` | JWT + Admin | Lista perfiles de usuarios. |
+| `GET` | `/api/usuarios/{id}` | JWT + Admin | Consulta un perfil por identificador. |
+| `PATCH` | `/api/usuarios/{id}` | JWT + Admin | Actualiza nombre, apellido o correo. |
+| `PATCH` | `/api/usuarios/{id}/estado` | JWT + Admin | Activa o desactiva la cuenta usando `{"activo": true}` o `{"activo": false}`. |
 
-ELARA Backend utiliza **Swagger UI** y **swagger-jsdoc** para generar y visualizar la documentación de la API REST. La configuración se encuentra en `src/docs/swagger.js`, mientras que los endpoints se documentan mediante comentarios JSDoc en los archivos JavaScript correspondientes.
+Las rutas de administración aceptan roles `Admin` y `Administrador`. Las respuestas de usuario no deben exponer contraseñas ni hashes. No se permite desactivar ni eliminar permanentemente la última cuenta administradora activa. La eliminación permanente es irreversible.
 
-### Ejecución
+### Categorías
 
-Inicia el servidor en modo desarrollo:
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `GET` | `/api/categorias` | Público | Lista categorías. |
+| `POST` | `/api/categorias` | JWT + Admin | Crea una categoría. |
+| `PUT` | `/api/categorias/{id}` | JWT + Admin | Actualiza una categoría. |
+| `DELETE` | `/api/categorias/{id}` | JWT + Admin | Elimina una categoría si no tiene contenidos asociados. |
 
-```bash
-npm run dev
+Para crear o actualizar, `nombre` es obligatorio y `descripcion` es opcional. El nombre debe ser único.
+
+### Contenidos
+
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `GET` | `/api/contenidos/catalogo` | Público | Lista contenidos aprobados; admite los filtros descritos abajo. |
+| `GET` | `/api/contenidos/{id}` | Público | Consulta el detalle de un contenido aprobado. |
+| `GET` | `/api/contenidos/{id}/personajes` | Público | Lista personajes de un contenido aprobado. |
+| `POST` | `/api/contenidos` | JWT + Admin | Crea contenido aprobado. |
+| `PUT` | `/api/contenidos/{id}` | JWT + Admin | Reemplaza los datos editables del contenido. |
+| `DELETE` | `/api/contenidos/{id}` | JWT + Admin | Elimina contenido. |
+| `POST` | `/api/contenidos/{id}/personajes` | JWT + Admin | Añade un personaje al contenido. |
+| `PUT` | `/api/contenidos/{id}/personajes/{personajeId}` | JWT + Admin | Actualiza un personaje. |
+| `DELETE` | `/api/contenidos/{id}/personajes/{personajeId}` | JWT + Admin | Elimina un personaje. |
+
+Filtros aceptados por `GET /api/contenidos/catalogo`:
+
+| Parámetro | Valores / formato |
+|---|---|
+| `titulo` | Texto, hasta 50 caracteres. |
+| `tipo` | `pelicula`, `serie` o `anime`. |
+| `categoria` | Nombre de categoría no vacío. |
+| `anio` | Entero entre 1901 y 2155. |
+| `orden` | `anio_desc`, `anio_asc`, `titulo_asc` o `titulo_desc`. |
+
+Para crear o actualizar contenido, los únicos campos permitidos son `categoria_id`, `titulo`, `tipo`, `descripcion`, `anio`, `director`, `url_imagen` y `url_trailer`. `categoria_id`, `titulo`, `tipo` y `anio` son obligatorios también en la actualización. El cliente no puede asignar `estado`. Los tipos admitidos son `pelicula`, `serie` y `anime`.
+
+Para crear o actualizar un personaje, envía exactamente `{"nombre":"Nombre","tipo":"principal"}`. `tipo` admite `principal` o `secundario`.
+
+### Propuestas de contenido
+
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `POST` | `/api/propuestas` | JWT | Envía una propuesta, que queda pendiente de revisión. |
+| `GET` | `/api/propuestas/pendientes` | JWT + Admin | Lista propuestas pendientes. |
+| `PATCH` | `/api/propuestas/{id}/estado` | JWT + Admin | Aprueba o rechaza una propuesta pendiente. |
+
+Para proponer contenido se permiten `titulo`, `descripcion`, `anio`, `tipo`, `categoria_id`, `director`, `url_imagen` y `url_trailer`; no se acepta `estado` ni `propuesto_por`. Para cambiar el estado envía únicamente `{"estado":"aprobado"}` o `{"estado":"rechazado"}`. Un administrador no puede resolver su propia propuesta.
+
+### Reseñas
+
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `POST` | `/api/reviews` | Público, JWT o visitante | Crea una reseña de contenido aprobado. |
+| `GET` | `/api/reviews/contenido/{contenidoId}` | Público | Lista reseñas del contenido aprobado. |
+| `GET` | `/api/reviews/mis-reviews` | Público, JWT o visitante | Lista reseñas de la identidad actual. |
+| `GET` | `/api/reviews/{id}` | Público | Consulta una reseña visible. |
+| `PUT` | `/api/reviews/{id}` | Autor (JWT o cookie de visitante) | Actualiza una reseña propia. |
+| `DELETE` | `/api/reviews/{id}` | Autor (JWT o cookie de visitante) | Elimina una reseña propia; responde `204` sin cuerpo. |
+
+Ejemplo de creación:
+
+```json
+{
+  "contenido_id": 1,
+  "titulo": "Muy recomendable",
+  "comentario": "Una historia excelente.",
+  "calificacion": 9
+}
 ```
 
-Una vez iniciado, accede a la documentación desde el navegador:
+`titulo` es obligatorio y admite hasta 25 caracteres; `comentario` y `nombre_visitante` son opcionales; `calificacion` debe ser un entero de 1 a 10. Cada identidad puede crear como máximo una reseña por contenido. En la actualización envía uno o más campos entre `titulo`, `comentario` y `calificacion`. No se permite elegir manualmente `usuario_id`, `visitante_id` o `contenido_id`.
 
-**Swagger UI:** http://localhost:3000/api-docs
+### Reacciones
 
-Para verificar que el servidor está funcionando correctamente, visita:
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `POST` | `/api/reacciones` | Público, JWT o visitante | Crea una reacción o cambia el tipo de la reacción propia. |
+| `GET` | `/api/reacciones/review/{reviewId}` | Público | Consulta totales de likes y dislikes de una reseña visible. |
+| `GET` | `/api/reacciones/mis-reacciones` | Público, JWT o visitante | Lista reacciones de la identidad actual. |
+| `PUT` | `/api/reacciones/{reviewId}` | Propietario (JWT o cookie de visitante) | Cambia el tipo de una reacción propia. |
+| `DELETE` | `/api/reacciones/{reviewId}` | Propietario (JWT o cookie de visitante) | Elimina la reacción propia; responde `204` sin cuerpo. |
 
-**Health check:** http://localhost:3000/health
+Para crear una reacción envía `{"review_id":12,"tipo":"like"}`. Para actualizar, envía `{"tipo":"dislike"}` a la ruta `PUT`. `tipo` admite `like` o `dislike`. Una persona usuaria autenticada no puede reaccionar a su propia reseña; un visitante sí puede hacerlo.
 
-Swagger UI permite consultar los endpoints documentados, revisar sus parámetros y respuestas, y ejecutar solicitudes mediante la opción **Try it out**, cuando esté disponible.
+## Validación, errores y límites
 
-> **Nota:** Si el servidor utiliza un puerto distinto de `3000`, reemplaza ese valor en las direcciones anteriores.
+- Las rutas privadas responden `401` si falta o no es válido el JWT. Las operaciones administrativas responden `403` si el usuario autenticado no tiene rol administrativo.
+- Las solicitudes inválidas responden con detalles de validación. Los recursos inexistentes y conflictos de negocio pueden producir `404` y `409`, respectivamente, según la operación.
+- Las respuestas de errores inesperados usan `500`; las rutas no registradas responden `404`.
+- La API limita solicitudes a 200 por IP cada 15 minutos. Los endpoints de registro e inicio de sesión permiten hasta 10 intentos fallidos por IP en 15 minutos; las solicitudes de autenticación exitosas no cuentan para ese límite.
+- La versión solicitada se valida antes de las rutas `/api`: semver inválida produce `400`, versión fuera del rango compatible produce `406`.
+- La ruta `/health` no está bajo `/api`, no usa el límite general de API y no verifica MySQL.
+- Los parámetros de autorización y validación no sustituyen las reglas de negocio ni los permisos aplicados por el backend.
 
-## Convenciones de desarrollo
+## Modelo de datos y estructura
 
-- Nombres de archivos y carpetas en inglés.
-- Variables, funciones, métodos, clases y comentarios propios en español, salvo convenciones estándar de bibliotecas y frameworks.
-- Documentación en español.
-- Mensajes de commit en inglés, siguiendo Conventional Commits.
-- Separación de responsabilidades y preferencia por componentes reutilizables.
-- Credenciales y configuraciones sensibles fuera del código fuente.
+Las tablas principales se definen en `database/ddl/schema.sql`: `rol`, `usuario`, `categoria`, `contenido`, `personaje`, `visitante`, `review` y `reaccion`. El esquema aplica claves foráneas, restricciones de unicidad y la relación de identidad entre usuarios o visitantes y sus reseñas/reacciones.
 
-## Estado del proyecto
+```text
+elara-backend/
+├── database/
+│   ├── ddl/schema.sql
+│   └── dml/insert.sql
+├── docs/
+│   ├── swagger.js
+│   └── uml/modelo-relacional.png
+├── src/
+│   ├── config/       # MySQL y Passport
+│   ├── controllers/  # Entrada HTTP y respuestas
+│   ├── dtos/         # Formatos de datos de entrada/salida
+│   ├── factories/    # Espacio reservado para fábricas
+│   ├── middleware/   # Autenticación, validación, límites y errores
+│   ├── repositories/ # Persistencia MySQL
+│   ├── routes/       # Rutas HTTP y permisos
+│   ├── services/     # Reglas de negocio
+│   ├── validators/   # Validación de parámetros y cuerpos
+│   ├── utils/        # Espacio reservado para utilidades compartidas
+│   └── app.js         # Configuración e inicio de Express
+├── .env.example
+├── Dockerfile
+├── compose.yaml
+└── package.json
+```
 
-La base inicial de ELARA Backend está preparada para continuar el desarrollo.
+La API implementa capas de rutas, controladores, servicios y repositorios; los DTO y validadores se usan para delimitar los datos transferidos y aceptados. La documentación interactiva se genera desde `docs/swagger.js`.
 
-**Implementado:**
+## Pruebas
 
-- Configuración inicial de Node.js y Express.
-- Dependencias del proyecto.
-- Variables de entorno de referencia.
-- Endpoint de comprobación `/health`.
-- Middleware para rutas inexistentes y manejo centralizado de errores.
-- Configuración de Docker para el backend y MySQL.
-- Pruebas manuales iniciales de arranque en local y Docker.
+El script definido en `package.json` es:
 
-**Pendiente de implementación:**
+```bash
+npm test
+```
 
-- Conexión funcional entre la aplicación y MySQL.
-- Creación y validación del esquema de base de datos.
-- Entidades y repositorios del catálogo.
-- Servicios, DTOs, controladores y rutas funcionales para películas, series y anime.
-- Validaciones de entrada y reglas de negocio.
-- Pruebas unitarias y de integración automatizadas.
-- Documentación detallada de los endpoints.
+Invoca el runner integrado `node --test`. En el checkout documentado no hay actualmente una carpeta `tests/` con pruebas del backend, por lo que este comando no representa una suite funcional de pruebas de API.
 
 ## Licencia
 
-El proyecto utiliza la licencia definida en `package.json`. Si se mantiene como `UNLICENSED`, se considera un proyecto privado que no concede una licencia pública de uso.
+El `package.json` declara la licencia **ISC**.

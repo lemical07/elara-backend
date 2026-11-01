@@ -1,17 +1,44 @@
+import express from 'express'
+import 'dotenv/config';
+import passport from 'passport';
+import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
+import configuracionSwagger from '../docs/swagger.js';
 
-import express from "express";
-import "dotenv/config";
-import swaggerUi from "swagger-ui-express";
-import swaggerSpec from "../docs/swagger.js";
+import { configurarEstrategiasPassport } from './config/passport.js';
+import { rutaNoEncontrada, manejarError } from './middleware/error.middleware.js';
+import { limitarAPI } from './middleware/rate-limit.middleware.js';
+import { validarVersionAPI } from './middleware/api-version.middleware.js';
+import rutasAutenticacion from './routes/auth.routes.js';
+import rutasCategoria from './routes/category.route.js';
+import rutasContenido from './routes/content.routes.js';
+import rutasUsuario from './routes/user.routes.js';
+import rutasResena from './routes/review.routes.js';
+import rutasReaccion from './routes/reaction.routes.js';
+import rutasPropuesta from './routes/proposal.routes.js';
 
 const app = express();
-const PORT = process.env.SERVER_PORT || 3000;
+const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
+
+configurarEstrategiasPassport();
 
 // configuracion de la app
 app.use(express.json());
+app.use(cookieParser());
+app.use(passport.initialize());
+app.use('/api', limitarAPI, validarVersionAPI);
+
+// otras rutas
+app.use('/api/auth', rutasAutenticacion);
+app.use('/api/usuarios', rutasUsuario);
+app.use('/api/categorias', rutasCategoria);
+app.use('/api/contenidos', rutasContenido);
+app.use('/api/reviews', rutasResena);
+app.use('/api/reacciones', rutasReaccion);
+app.use('/api/propuestas', rutasPropuesta);
 
 // doc. Swagger
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(configuracionSwagger));
 
 // ruta estandar servidor
 app.get("/health", (req, res) => {
@@ -21,24 +48,11 @@ app.get("/health", (req, res) => {
     });
 });
 
-// demás rutas
 
-// rutas inexistentes
-app.use((req, res) => {
-    res.status(404).json({mensaje: "Ruta no encontrada"});
-});
-
-// manejo de errores
-function manejadorErrores(err, req, res, next) {
-    res.status(err.statusCode || 500).json({
-        mensaje: err.message || "Error interno del servidor",
-        errores: err.details || null
-    });
-}
-
-app.use(manejadorErrores);
+app.use(rutaNoEncontrada);// rutas inexistentes
+app.use(manejarError);//manejo de errores
 
 // iniciar servidor
 app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Servidor ELARA ejecutándose en el puerto ${PORT}`);
+    console.log(`Servidor ELARA ejecutándose en el puerto http://localhost:${PORT}`);
 });

@@ -1,5 +1,4 @@
-
-CREATE DATABASE elara_db;
+CREATE DATABASE IF NOT EXISTS elara_db;
 
 USE elara_db;
 
@@ -22,7 +21,7 @@ CREATE TABLE usuario(
 
 CREATE TABLE categoria(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    nombre VARCHAR(50) NOT NULL,
+    nombre VARCHAR(50) NOT NULL UNIQUE,
     descripcion TEXT
 );
 
@@ -31,7 +30,7 @@ CREATE TABLE contenido(
     categoria_id INT NOT NULL,
     propuesto_por INT NULL,
     titulo VARCHAR(50) NOT NULL,
-    tipo VARCHAR(25) NOT NULL,
+    tipo ENUM('pelicula', 'serie', 'anime') NOT NULL,
     descripcion TEXT,
     anio YEAR NOT NULL,
     estado ENUM('pendiente', 'aprobado', 'rechazado') NOT NULL DEFAULT 'pendiente',
@@ -52,10 +51,18 @@ CREATE TABLE personaje(
     FOREIGN KEY (contenido_id) REFERENCES contenido(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE TABLE visitante(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    token CHAR(36) NOT NULL UNIQUE,
+    creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE review(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    usuario_id INT NOT NULL,
+    usuario_id INT NULL,
+    visitante_id INT NULL,
     contenido_id INT NOT NULL,
+    nombre_visitante VARCHAR(60) NULL,
     titulo VARCHAR(25) NOT NULL,
     comentario TEXT,
     calificacion TINYINT UNSIGNED NOT NULL CHECK (calificacion BETWEEN 1 AND 10),
@@ -63,19 +70,25 @@ CREATE TABLE review(
     actualizado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (visitante_id) REFERENCES visitante(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (contenido_id) REFERENCES contenido(id) ON DELETE CASCADE ON UPDATE CASCADE,
 
-    UNIQUE (usuario_id, contenido_id)
+    UNIQUE (usuario_id, contenido_id),
+    UNIQUE (visitante_id, contenido_id)
 );
+
 
 CREATE TABLE reaccion(
     id INT PRIMARY KEY AUTO_INCREMENT,
-    usuario_id INT NOT NULL,
+    usuario_id INT NULL,
+    visitante_id INT NULL,
     review_id INT NOT NULL,
     tipo ENUM('like', 'dislike') NOT NULL,
 
     FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (visitante_id) REFERENCES visitante(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (review_id) REFERENCES review(id) ON DELETE CASCADE ON UPDATE CASCADE,
 
-    UNIQUE (usuario_id, review_id)
+    UNIQUE (usuario_id, review_id),
+    UNIQUE (visitante_id, review_id)
 );
