@@ -40,7 +40,7 @@ class CategoriaServicio {
        }
 
        try {
-           return await categoriaRepositorio.actualizarCategoria(id, nombre.trim(), descripcion);
+           return await categoriaRepositorio.actualizarCategoria(id, nombre.trim(), descripcion ?? null);
        } catch (causa) {
            if (causa.code === 'ER_DUP_ENTRY') {
                const error = new Error('El nombre de la categoría ya está en uso.');
