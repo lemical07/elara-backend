@@ -44,6 +44,28 @@ export function autenticarJWT(req, res, next) {
     })(req, res, next);
 }
 
+export function autenticarOpcional(req, res, next) {
+    if (!req.headers.authorization) {
+        return next();
+    }
+
+    passport.authenticate('jwt', { session: false }, (error, usuario, info) => {
+        if (error) {
+            return next(error);
+        }
+
+        if (!usuario) {
+            return res.status(401).json({
+                exito: false,
+                mensaje: info?.message || 'Token inválido, expirado o asociado a un usuario inactivo.'
+            });
+        }
+
+        req.user = usuario;
+        return next();
+    })(req, res, next);
+}
+
 export function autorizarAdmin(req, res, next) {
     const usuario = req.user;
     if (!usuario) {

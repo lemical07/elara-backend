@@ -9,7 +9,11 @@ class AutenticacionServicio {
         this.usuarioRepositorio = repositorio;
     }
 
-    async registrar({ nombre, apellido, correo, contrasena } = {}) {
+    async registrar(entrada = {}) {
+        if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) {
+            throw this.crearError('Los datos de registro deben ser un objeto JSON.', 400);
+        }
+        const { nombre, apellido, correo, contrasena } = entrada;
         const datos = {
             nombre: typeof nombre === 'string' ? nombre.trim() : '',
             apellido: typeof apellido === 'string' ? apellido.trim() : '',
@@ -44,13 +48,21 @@ class AutenticacionServicio {
         }
 
         const contrasenaHash = await bcrypt.hash(datos.contrasena, 10);
-        const usuarioCreado = await this.usuarioRepositorio.crear({
-            rol_id: rolUsuario.id,
-            nombre: datos.nombre,
-            apellido: datos.apellido,
-            correo: datos.correo,
-            contrasena: contrasenaHash
-        });
+        let usuarioCreado;
+        try {
+            usuarioCreado = await this.usuarioRepositorio.crear({
+                rol_id: rolUsuario.id,
+                nombre: datos.nombre,
+                apellido: datos.apellido,
+                correo: datos.correo,
+                contrasena: contrasenaHash
+            });
+        } catch (causa) {
+            if (causa.code === 'ER_DUP_ENTRY') {
+                throw this.crearError('El correo electrónico ya está registrado.', 409);
+            }
+            throw causa;
+        }
         const usuario = await this.usuarioRepositorio.buscarPorIdConRol(usuarioCreado.id);
 
         if (!usuario) {
