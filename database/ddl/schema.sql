@@ -1,4 +1,4 @@
-CREATE DATABASE elara_db;
+CREATE DATABASE IF NOT EXISTS elara_db;
 
 USE elara_db;
 
@@ -74,13 +74,9 @@ CREATE TABLE review(
     FOREIGN KEY (contenido_id) REFERENCES contenido(id) ON DELETE CASCADE ON UPDATE CASCADE,
 
     UNIQUE (usuario_id, contenido_id),
-    UNIQUE (visitante_id, contenido_id),
-
-    CHECK (
-        (usuario_id IS NOT NULL AND visitante_id IS NULL) OR
-        (usuario_id IS NULL AND visitante_id IS NOT NULL)
-    )
+    UNIQUE (visitante_id, contenido_id)
 );
+
 
 CREATE TABLE reaccion(
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -94,10 +90,5 @@ CREATE TABLE reaccion(
     FOREIGN KEY (review_id) REFERENCES review(id) ON DELETE CASCADE ON UPDATE CASCADE,
 
     UNIQUE (usuario_id, review_id),
-    UNIQUE (visitante_id, review_id),
-
-    CHECK (
-        (usuario_id IS NOT NULL AND visitante_id IS NULL) OR
-        (usuario_id IS NULL AND visitante_id IS NOT NULL)
-    )
+    UNIQUE (visitante_id, review_id)
 );

@@ -8,6 +8,10 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      DB_HOST: mysql
+      DB_NAME: elara_db
+      PORT: 3000
     ports:
       - "${PORT:-3000}:3000"
     depends_on:
@@ -20,13 +24,15 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Define MYSQL_ROOT_PASSWORD en .env}
-      MYSQL_DATABASE: ${DB_NAME:-elara}
+      MYSQL_DATABASE: elara_db
       MYSQL_USER: ${DB_USER:?Define DB_USER en .env}
       MYSQL_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en .env}
     ports:
       - "127.0.0.1:${DB_EXTERNAL_PORT:-3307}:3306"
     volumes:
       - elara_mysql_data:/var/lib/mysql
+      - ./database/ddl/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+      - ./database/dml/insert.sql:/seed/insert.sql:ro
     healthcheck:
       test:
         - CMD-SHELL
