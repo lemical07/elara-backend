@@ -143,6 +143,25 @@ Esto conserva el volumen `elara_mysql_data`. **No uses `docker compose down -v`*
 
 El puerto puede cambiarse mediante `PORT` o `SERVER_PORT`. Sustituye `3000` en las URLs si el servidor usa otro puerto.
 
+### Integración con ELARA Frontend
+
+El frontend se mantiene en un repositorio independiente: [lemical07/elara-frontend](https://github.com/lemical07/elara-frontend). La referencia de integración documentada es el commit [`0f668df2d2ca645f522397c4268c7d0b40f84902`](https://github.com/lemical07/elara-frontend/commit/0f668df2d2ca645f522397c4268c7d0b40f84902).
+
+En desarrollo local, el servidor nativo `server.mjs` del frontend sirve la interfaz en `http://localhost:5500` y actúa como proxy para las solicitudes con el prefijo público `/elara`. Reenvía al backend sustituyendo únicamente ese prefijo por `/api`; el backend conserva sin cambios sus rutas y contratos:
+
+| Solicitud del navegador | Ruta que recibe el backend |
+|---|---|
+| `/elara/auth/login` | `http://localhost:3000/api/auth/login` |
+| `/elara/auth/me` | `http://localhost:3000/api/auth/me` |
+
+Para ejecutar la integración:
+
+1. Inicia el backend según [Ejecución local](#ejecución-local), normalmente en `http://localhost:3000`.
+2. Desde la raíz del repositorio frontend ejecuta `node server.mjs` y abre `http://localhost:5500`.
+3. Comprueba el servicio mediante `http://localhost:5500/elara/auth/me`. Sin una sesión autenticada, el backend puede responder `401`; esa respuesta confirma que la solicitud llegó al endpoint protegido.
+
+El proxy local conserva el método, la ruta restante, los parámetros de consulta, el cuerpo y los encabezados de solicitud; transmite la respuesta y `Set-Cookie`. El JWT continúa verificándose en el backend. Este servidor es una herramienta de desarrollo, no un componente de producción. En producción, el frontend y la API deben publicarse bajo una configuración de mismo origen o una infraestructura que enrute las solicitudes y configure CORS explícitamente si los orígenes son distintos.
+
 ### Solicitudes y autenticación
 
 - Las rutas con cuerpo JSON esperan `Content-Type: application/json`.
