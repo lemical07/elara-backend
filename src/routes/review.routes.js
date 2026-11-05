@@ -5,6 +5,8 @@ import { identificarVisitante } from '../middleware/visitor.middleware.js';
 import { validarSolicitud } from '../middleware/validation.middleware.js';
 import {ResenaActualizarValidaciones, ResenaContenidoIdValidaciones, ResenaCrearValidaciones, ResenaIdValidaciones} from '../validators/review.validator.js';
 
+import exportarResenasControlador from '../controllers/export.review.controller.js';
+
 const router = Router();
 const resenaControlador = new ResenaControlador();
 
@@ -16,6 +18,6 @@ router.put('/:id', autenticarOpcional, identificarVisitante, ResenaIdValidacione
 router.delete('/:id', autenticarOpcional, identificarVisitante, ResenaIdValidaciones, validarSolicitud, resenaControlador.eliminar);
 
 //ruta expoprtacion de reseñas a CSV
-router.get('/export/:id', resenaControlador.exportarResenasACSV);
+router.get('/export/:id', exportarResenasControlador.exportarResenaSVC);
 
 module.exports = router;
