@@ -366,6 +366,37 @@ npm test
 
 Invoca el runner integrado `node --test`. En el checkout documentado no hay actualmente una carpeta `tests/` con pruebas del backend, por lo que este comando no representa una suite funcional de pruebas de API.
 
+
+## Examen -- Exportartación de REseñas
+
+#### Endpoint: `GET /api/reviews/export/:id`
+
+Exporta todas las reseñas de una película en un archivo CSV. El archivo se genera en el servidor y se guarda en la carpeta `/exports`.
+
+- **Parámetros de ruta**:
+  - `id` (obligatorio): ID de la película cuya reseña se desea exportar.
+
+- **Respuesta**:
+  - `200 OK`: El archivo CSV se generó exitosamente.
+    ```json
+    {
+      "message": "Archivo CSV generado exitosamente.",
+      "filePath": "/exports/reviews_movie_<id>.csv"
+    }
+    ```
+  - `404 Not Found`: No se encontraron reseñas para la película.
+    ```json
+    {
+      "message": "No se encontraron reseñas para esta película."
+    }
+    ```
+  - `500 Internal Server Error`: Error al generar el archivo CSV.
+    ```json
+    {
+      "message": "Error al generar el archivo CSV."
+    }
+    ```
+
 ## Licencia
 
 El `package.json` declara la licencia **ISC**.
