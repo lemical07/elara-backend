@@ -15,4 +15,7 @@ router.get('/:id', ResenaIdValidaciones, validarSolicitud, resenaControlador.obt
 router.put('/:id', autenticarOpcional, identificarVisitante, ResenaIdValidaciones, ResenaActualizarValidaciones, validarSolicitud, resenaControlador.actualizar);
 router.delete('/:id', autenticarOpcional, identificarVisitante, ResenaIdValidaciones, validarSolicitud, resenaControlador.eliminar);
 
-export default router;
+//ruta expoprtacion de reseñas a CSV
+router.get('/export/:id', resenaControlador.exportarResenasACSV);
+
+module.exports = router;
