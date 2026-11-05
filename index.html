@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Search</title>
+</head>
+<body>
+    <h1>Advanced Movie Search</h1>
+    <form id="searchForm">
+        <label for="category">Category:</label>
+        <input type="text" id="category" name="category"><br>
+
+        <label for="minRating">Min Rating:</label>
+        <input type="number" id="minRating" name="minRating" step="0.1" min="0" max="5"><br>
+
+        <label for="maxRating">Max Rating:</label>
+        <input type="number" id="maxRating" name="maxRating" step="0.1" min="0" max="5"><br>
+
+        <label for="releaseYear">Release Year (after):</label>
+        <input type="number" id="releaseYear" name="releaseYear"><br>
+
+        <button type="submit">Search</button>
+    </form>
+    <div id="results"></div>
+    <script src="./frontend.js"></script>
+</body>
+</html>
