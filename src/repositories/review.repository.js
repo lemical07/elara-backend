@@ -168,6 +168,20 @@ class ResenaRepositorio {
         );
         return resultado.affectedRows > 0;
     }
+
+    //eamen: exportar reseñas a CSV por contenido, donde se vea nombre usuario creador , calificacion, comentario, fecha de creacion
+    
+    async exporarResenaCVS(movieId){
+        const [rows] = await db.query(
+            `SELECT u.nombre AS nombreUsuario, r.calificacion AS Calificacion, r.comentario AS Cometario, r.creado_en AS fecha_Creacion
+            FROM review r
+            JOIN usuario u ON r.usuario_id = u.id
+            WHERE r.contenido_id = ?;`,
+            [movieId]
+        );
+    return rows;
+    }
 }
+
 
 export default new ResenaRepositorio();
