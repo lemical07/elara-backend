@@ -13,7 +13,9 @@ import rutasAutenticacion from './routes/auth.routes.js';
 import rutasCategoria from './routes/category.route.js';
 import rutasContenido from './routes/content.routes.js';
 import rutasUsuario from './routes/user.routes.js';
-import rutasResena from './routes/review.routes.js';
+
+// ----------------------------------------
+import { rutasResena, rutasExportacion } from './routes/review.routes.js';
 import rutasReaccion from './routes/reaction.routes.js';
 import rutasPropuesta from './routes/proposal.routes.js';
 
@@ -33,7 +35,10 @@ app.use('/api/auth', rutasAutenticacion);
 app.use('/api/usuarios', rutasUsuario);
 app.use('/api/categorias', rutasCategoria);
 app.use('/api/contenidos', rutasContenido);
-app.use('/api/reviews', rutasResena);
+
+//usamos la ruta de review y solo se impplemeta rutasExportacion
+app.use('/api/reviews', rutasResena, rutasExportacion);
+
 app.use('/api/reacciones', rutasReaccion);
 app.use('/api/propuestas', rutasPropuesta);
 
