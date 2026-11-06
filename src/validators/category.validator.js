@@ -2,18 +2,22 @@ import { body, param } from 'express-validator';
 
 const camposPermitidos = new Set(['nombre', 'descripcion']);
 
-const validarCuerpoCategoria = body().custom((_, { req }) => {
-    const datos = req.body;
-    if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
-        throw new Error('El cuerpo debe ser un objeto JSON.');
-    }
+class CategoriaValidaciones {
+    static validarCuerpo() {
+        return body().custom((_, { req }) => {
+            const datos = req.body;
+            if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+                throw new Error('El cuerpo debe ser un objeto JSON.');
+            }
 
-    const campos = Object.keys(datos);
-    if (campos.length === 0 || campos.some(campo => !camposPermitidos.has(campo))) {
-        throw new Error('Envía únicamente los campos nombre y descripcion.');
+            const campos = Object.keys(datos);
+            if (campos.length === 0 || campos.some(campo => !camposPermitidos.has(campo))) {
+                throw new Error('Envía únicamente los campos nombre y descripcion.');
+            }
+            return true;
+        });
     }
-    return true;
-});
+}
 
 export const CategoriaIdValidaciones = [
     param('id')
@@ -21,7 +25,7 @@ export const CategoriaIdValidaciones = [
 ];
 
 export const CategoriaCrearValidaciones = [
-    validarCuerpoCategoria,
+    CategoriaValidaciones.validarCuerpo(),
     body('nombre')
         .isString().withMessage('El nombre debe ser texto.')
         .trim()

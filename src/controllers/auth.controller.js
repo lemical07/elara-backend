@@ -7,7 +7,18 @@ export class AutenticacionControlador {
 
     registrar = async (req, res, next) => {
         try {
+            if (
+                process.env.NODE_ENV === 'production' &&
+                req.secure !== true
+            ) {
+                const error = new Error('El registro de cuentas requiere una conexión HTTPS.');
+                error.status = 426;
+                throw error;
+            }
             const datos = await this.servicioAutenticacion.registrar(req.body);
+            if (datos.primer_administrador === true) {
+                res.set('Cache-Control', 'no-store, private');
+            }
             return res.status(201).json({
                 exito: true,
                 mensaje: 'Usuario registrado correctamente.',

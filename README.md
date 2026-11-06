@@ -56,6 +56,7 @@ Edita `.env` con credenciales válidas para tu entorno. No compartas ni subas es
 |---|---|---|
 | `PORT` | Puerto HTTP del backend. | `3000` |
 | `SERVER_PORT` | Puerto alternativo si `PORT` no está definido. | No definido por defecto |
+| `TRUST_PROXY` | Proxy confiable para detectar HTTPS detrás de un proxy inverso. Configúralo según la topología real (por ejemplo, `1` para un único proxy confiable). | No definido |
 | `JWT_SECRET` | Secreto privado usado para firmar y verificar JWT. | Define un secreto largo y aleatorio |
 | `JWT_EXPIRES_IN` | Vigencia del JWT, según el formato aceptado por `jsonwebtoken`. | `1h` |
 | `DB_HOST` | Host de MySQL. | `localhost` en ejecución local; `mysql` en Docker Compose |
@@ -166,7 +167,7 @@ El proxy local conserva el método, la ruta restante, los parámetros de consult
 
 - Las rutas con cuerpo JSON esperan `Content-Type: application/json`.
 - Las rutas protegidas requieren `Authorization: Bearer <token>`.
-- Obtén el token mediante `POST /api/auth/register` o `POST /api/auth/login`. El registro asigna el rol predeterminado del backend; el cliente no puede enviar un rol.
+- Obtén el token mediante `POST /api/auth/register` o `POST /api/auth/login`. El backend decide si el registro inicializa al administrador; el cliente no puede enviar un rol.
 - La autenticación opcional de reseñas y reacciones acepta un JWT válido o identifica a visitantes mediante la cookie `elara_visitante`.
 - El backend crea esa cookie para visitantes con `HttpOnly`, `SameSite=Lax`, `Path=/` y duración de un año. `Secure` depende de que la solicitud llegue como HTTPS según `req.secure`.
 - Los clientes web que usen la cookie deben enviar credenciales. Este backend no configura CORS; el frontend debe compartir origen con la API o el despliegue debe configurar CORS explícitamente con orígenes permitidos y credenciales.
@@ -207,11 +208,13 @@ En las tablas, `{id}`, `{contenidoId}`, `{reviewId}` y `{personajeId}` represent
 
 | Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
-| `POST` | `/api/auth/register` | Público | Registra un usuario y genera un JWT. |
+| `POST` | `/api/auth/register` | Público | Inicializa al primer administrador o registra una cuenta normal según el estado de la base de datos. |
 | `POST` | `/api/auth/login` | Público | Valida credenciales y genera un JWT. |
 | `GET` | `/api/auth/me` | JWT | Devuelve la sesión y el perfil autenticados. |
 
-El registro requiere exactamente `nombre`, `apellido`, `correo` y `contrasena`. El inicio de sesión requiere exactamente `correo` y `contrasena`. La contraseña debe tener al menos 8 caracteres y no superar 72 bytes. Las contraseñas se almacenan con hash; nunca envíes campos de rol o estado.
+El registro requiere `nombre`, `apellido` y `correo`; `contrasena` solo se envía para cuentas posteriores. Si la base de datos no contiene usuarios, el primer registro debe omitirla: el backend asigna `Administrador`, genera una contraseña aleatoria de 13 caracteres y devuelve esa clave una sola vez en `datos.contrasena_temporal`, junto con `datos.primer_administrador: true`. La pantalla de bienvenida permite consultarla durante 60 segundos; no existe un endpoint para recuperarla. En producción, sirve el flujo exclusivamente mediante HTTPS. Si ya hay usuarios, la contraseña es obligatoria y el backend asigna `Usuario`. Las contraseñas enviadas deben tener al menos 8 caracteres y no superar 72 bytes; se almacenan con bcrypt. Nunca envíes campos de rol o estado al registrar.
+
+La comprobación de usuarios y la creación se ejecutan bajo un bloqueo asesor de MySQL y una transacción. Si el primer registro falla, la transacción se revierte y no se devuelve la contraseña temporal.
 
 ### Usuarios
 
@@ -219,15 +222,16 @@ El registro requiere exactamente `nombre`, `apellido`, `correo` y `contrasena`. 
 |---|---|---|---|
 | `GET` | `/api/usuarios/me` | JWT | Consulta el perfil propio. |
 | `PUT` | `/api/usuarios/me` | JWT | Actualiza uno o más de `nombre`, `apellido` y `correo`. |
-| `PATCH` | `/api/usuarios/me/contrasena` | JWT | Cambia la contraseña propia. Requiere `contrasena_actual` y `contrasena_nueva`. |
+| `PATCH` | `/api/usuarios/me/contrasena` | JWT | Cambia la contraseña propia. Requiere `contrasena_actual`, `contrasena_nueva` y `contrasena_nueva_confirmacion`. |
 | `DELETE` | `/api/usuarios/me` | JWT | Desactiva la cuenta propia. |
 | `DELETE` | `/api/usuarios/me/permanente` | JWT | Elimina permanentemente la cuenta propia. Requiere `contrasena_actual`. |
 | `GET` | `/api/usuarios` | JWT + Admin | Lista perfiles de usuarios. |
 | `GET` | `/api/usuarios/{id}` | JWT + Admin | Consulta un perfil por identificador. |
 | `PATCH` | `/api/usuarios/{id}` | JWT + Admin | Actualiza nombre, apellido o correo. |
 | `PATCH` | `/api/usuarios/{id}/estado` | JWT + Admin | Activa o desactiva la cuenta usando `{"activo": true}` o `{"activo": false}`. |
+| `PATCH` | `/api/usuarios/{id}/rol` | JWT + Admin | Concede `ADMIN` o `USUARIO` usando `{"rol":"ADMIN"}` o `{"rol":"USUARIO"}`. |
 
-Las rutas de administración aceptan roles `Admin` y `Administrador`. Las respuestas de usuario no deben exponer contraseñas ni hashes. No se permite desactivar ni eliminar permanentemente la última cuenta administradora activa. La eliminación permanente es irreversible.
+Las rutas de administración aceptan roles `Admin` y `Administrador`. Las respuestas de usuario no deben exponer contraseñas ni hashes. No se permite desactivar, eliminar ni retirar el rol de la última cuenta administradora activa. Los permisos se consultan desde MySQL en cada petición autenticada, por lo que un cambio de rol afecta también a tokens ya emitidos. La eliminación permanente es irreversible.
 
 ### Categorías
 
@@ -265,6 +269,8 @@ Filtros aceptados por `GET /api/contenidos/catalogo`:
 | `orden` | `anio_desc`, `anio_asc`, `titulo_asc` o `titulo_desc`. |
 
 Para crear o actualizar contenido, los únicos campos permitidos son `categoria_id`, `titulo`, `tipo`, `descripcion`, `anio`, `director`, `url_imagen` y `url_trailer`. `categoria_id`, `titulo`, `tipo` y `anio` son obligatorios también en la actualización. El cliente no puede asignar `estado`. Los tipos admitidos son `pelicula`, `serie` y `anime`.
+
+Para cambiar la contraseña desde el perfil, envía `contrasena_actual`, `contrasena_nueva` y `contrasena_nueva_confirmacion`; ambas nuevas deben coincidir. No se requiere cambiar la contraseña temporal para acceder al catálogo. Si el backend está detrás de un proxy HTTPS en producción, configura `TRUST_PROXY` únicamente con la cantidad o las direcciones de proxies confiables de tu despliegue; el endpoint de registro rechaza solicitudes que Express no identifica como HTTPS.
 
 Para crear o actualizar un personaje, envía exactamente `{"nombre":"Nombre","tipo":"principal"}`. `tipo` admite `principal` o `secundario`.
 

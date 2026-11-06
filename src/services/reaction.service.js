@@ -4,26 +4,26 @@ import ReaccionObtenerDTO from '../dtos/reaction.read.dto.js';
 import ReaccionResumenDTO from '../dtos/reaction.summary.dto.js';
 import ReaccionActualizarDTO from '../dtos/reaction.update.dto.js';
 
-function crearError(mensaje, status) {
-    const error = new Error(mensaje);
-    error.status = status;
-    return error;
-}
-
-function mapearReaccion(reaccion) {
-    return new ReaccionObtenerDTO(reaccion).data;
-}
-
 export class ReaccionServicio {
     constructor(repositorio = reaccionRepositorio) {
         this.reaccionRepositorio = repositorio;
+    }
+
+    crearError(mensaje, status) {
+        const error = new Error(mensaje);
+        error.status = status;
+        return error;
+    }
+
+    mapearReaccion(reaccion) {
+        return new ReaccionObtenerDTO(reaccion).data;
     }
 
     obtenerIdsIdentidad(identidad) {
         const usuarioId = identidad.usuarioId ?? null;
         const visitanteId = identidad.visitanteId ?? null;
         if (Boolean(usuarioId) === Boolean(visitanteId)) {
-            throw crearError('Se requiere una sola identidad para esta operación.', 401);
+            throw this.crearError('Se requiere una sola identidad para esta operación.', 401);
         }
         return { usuarioId, visitanteId };
     }
@@ -31,11 +31,11 @@ export class ReaccionServicio {
     async verificarResena(resenaId, usuarioId) {
         const resena = await this.reaccionRepositorio.buscarResenaVisible(resenaId);
         if (!resena) {
-            throw crearError('Reseña no encontrada.', 404);
+            throw this.crearError('Reseña no encontrada.', 404);
         }
         if (usuarioId !== null && usuarioId !== undefined &&
             Number(resena.usuario_id) === Number(usuarioId)) {
-            throw crearError('No puedes reaccionar a tu propia reseña.', 403);
+            throw this.crearError('No puedes reaccionar a tu propia reseña.', 403);
         }
         return resena;
     }
@@ -59,7 +59,7 @@ export class ReaccionServicio {
                 : resultado.cambio
                     ? 'Reacción actualizada correctamente.'
                     : 'La reacción ya tenía ese tipo; no hubo cambios.',
-            datos: mapearReaccion(reaccionDTO)
+            datos: this.mapearReaccion(reaccionDTO)
         };
     }
 
@@ -69,7 +69,7 @@ export class ReaccionServicio {
 
         const reaccionActual = await this.reaccionRepositorio.buscarPropia(usuarioId, visitanteId, resenaId);
         if (!reaccionActual) {
-            throw crearError('No tienes una reacción para esta reseña.', 404);
+            throw this.crearError('No tienes una reacción para esta reseña.', 404);
         }
 
         const actualizacion = new ReaccionActualizarDTO(datos).data;
@@ -80,14 +80,14 @@ export class ReaccionServicio {
             actualizacion.tipo
         );
         if (!cambio && !(await this.reaccionRepositorio.buscarPropia(usuarioId, visitanteId, resenaId))) {
-            throw crearError('No tienes una reacción para esta reseña.', 404);
+            throw this.crearError('No tienes una reacción para esta reseña.', 404);
         }
 
         return {
             mensaje: cambio
                 ? 'Reacción actualizada correctamente.'
                 : 'La reacción ya tenía ese tipo; no hubo cambios.',
-            datos: mapearReaccion({ review_id: resenaId, tipo: actualizacion.tipo })
+            datos: this.mapearReaccion({ review_id: resenaId, tipo: actualizacion.tipo })
         };
     }
 
@@ -97,7 +97,7 @@ export class ReaccionServicio {
 
         const eliminada = await this.reaccionRepositorio.eliminarPropia(usuarioId, visitanteId, resenaId);
         if (!eliminada) {
-            throw crearError('No tienes una reacción para esta reseña.', 404);
+            throw this.crearError('No tienes una reacción para esta reseña.', 404);
         }
     }
 
@@ -110,7 +110,7 @@ export class ReaccionServicio {
     async listarPropias(identidad) {
         const { usuarioId, visitanteId } = this.obtenerIdsIdentidad(identidad);
         const reacciones = await this.reaccionRepositorio.listarPropias(usuarioId, visitanteId);
-        return reacciones.map(reaccion => new ReaccionObtenerDTO(reaccion).data);
+        return reacciones.map(reaccion => this.mapearReaccion(reaccion));
     }
 }
 

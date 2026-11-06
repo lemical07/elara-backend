@@ -12,21 +12,41 @@ const camposPermitidos = new Set([
 ]);
 const tiposPermitidos = ['pelicula', 'serie', 'anime'];
 
-const validarCamposPermitidos = body().custom((_, { req }) => {
-    const datos = req.body;
-    if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
-        throw new Error('El cuerpo debe ser un objeto JSON.');
+class PropuestaValidaciones {
+    static validarCamposPermitidos() {
+        return body().custom((_, { req }) => {
+            const datos = req.body;
+            if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+                throw new Error('El cuerpo debe ser un objeto JSON.');
+            }
+
+            const claves = Object.keys(datos);
+            if (claves.length === 0 || claves.some(campo => !camposPermitidos.has(campo))) {
+                throw new Error(`Envía únicamente los campos permitidos: ${[...camposPermitidos].join(', ')}.`);
+            }
+            return true;
+        });
     }
 
-    const claves = Object.keys(datos);
-    if (claves.length === 0 || claves.some(campo => !camposPermitidos.has(campo))) {
-        throw new Error(`Envía únicamente los campos permitidos: ${[...camposPermitidos].join(', ')}.`);
+    static validarEstado() {
+        return body().custom((_, { req }) => {
+            const datos = req.body;
+            if (
+                !datos ||
+                typeof datos !== 'object' ||
+                Array.isArray(datos) ||
+                Object.keys(datos).length !== 1 ||
+                !Object.hasOwn(datos, 'estado')
+            ) {
+                throw new Error('Envía únicamente el campo estado.');
+            }
+            return true;
+        });
     }
-    return true;
-});
+}
 
 export const PropuestaCrearValidaciones = [
-    validarCamposPermitidos,
+    PropuestaValidaciones.validarCamposPermitidos(),
     body('titulo')
         .isString().withMessage('El título debe ser texto.')
         .trim()
@@ -65,19 +85,7 @@ export const PropuestaIdValidaciones = [
 ];
 
 export const PropuestaEstadoValidaciones = [
-    body().custom((_, { req }) => {
-        const datos = req.body;
-        if (
-            !datos ||
-            typeof datos !== 'object' ||
-            Array.isArray(datos) ||
-            Object.keys(datos).length !== 1 ||
-            !Object.hasOwn(datos, 'estado')
-        ) {
-            throw new Error('Envía únicamente el campo estado.');
-        }
-        return true;
-    }),
+    PropuestaValidaciones.validarEstado(),
     body('estado')
         .isIn(['aprobado', 'rechazado']).withMessage('El estado debe ser aprobado o rechazado.')
 ];

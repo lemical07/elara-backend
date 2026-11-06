@@ -7,12 +7,6 @@ class CategoriaServicio {
    }
 
    async crearCategoria(nombre, descripcion) {
-       if (typeof nombre !== 'string' || nombre.trim() === '') {
-           const error = new Error('El nombre es obligatorio.');
-           error.status = 400;
-           throw error;
-       }
-
        try {
            return await categoriaRepositorio.crearCategoria(nombre.trim(), descripcion);
        } catch (causa) {
@@ -26,12 +20,6 @@ class CategoriaServicio {
    }
 
    async actualizarCategoria(id, nombre, descripcion) {
-       if (typeof nombre !== 'string' || nombre.trim() === '') {
-           const error = new Error('El nombre es obligatorio.');
-           error.status = 400;
-           throw error;
-       }
-
        const existe = await categoriaRepositorio.buscarCategoriaPorId(id);
        if (!existe) {
            const error = new Error('Categoría no encontrada.');

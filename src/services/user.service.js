@@ -57,12 +57,6 @@ async crear(datos) {
         const usuarioDTO = new UsuarioActualizarDTO(datos);
         const datosActualizar = usuarioDTO.data;
 
-        if (Object.keys(datosActualizar).length === 0) {
-            const error = new Error("Debes proporcionar al menos un campo para actualizar");
-            error.status = 400;
-            throw error;
-        }
-
         const datosCompletos = {
             nombre: datosActualizar.nombre ?? usuarioExistente.nombre,
             apellido: datosActualizar.apellido ?? usuarioExistente.apellido,
@@ -101,22 +95,11 @@ async crear(datos) {
         return this.actualizar(id, datos);
     }
 
-    async cambiarContrasena(id, { contrasena_actual, contrasena_nueva } = {}) {
-        if (typeof contrasena_actual !== 'string' || typeof contrasena_nueva !== 'string') {
-            const error = new Error("Debes proporcionar la contraseña actual y la nueva contraseña.");
-            error.status = 400;
-            throw error;
-        }
-
-        if (
-            contrasena_nueva.length < 8 ||
-            Buffer.byteLength(contrasena_nueva, 'utf8') > 72
-        ) {
-            const error = new Error("La nueva contraseña debe tener al menos 8 caracteres y un máximo de 72 bytes.");
-            error.status = 400;
-            throw error;
-        }
-
+    async cambiarContrasena(id, {
+        contrasena_actual,
+        contrasena_nueva,
+        contrasena_nueva_confirmacion
+    }) {
         const usuario = await usuarioRepositorio.buscarPorIdConContrasena(id);
         if (!usuario || !usuario.activo) {
             const error = new Error("Usuario no encontrado o inactivo.");
@@ -127,6 +110,12 @@ async crear(datos) {
         if (!(await bcrypt.compare(contrasena_actual, usuario.contrasena))) {
             const error = new Error("La contraseña actual es incorrecta.");
             error.status = 401;
+            throw error;
+        }
+
+        if (contrasena_nueva !== contrasena_nueva_confirmacion) {
+            const error = new Error("La confirmación debe coincidir con la nueva contraseña.");
+            error.status = 400;
             throw error;
         }
 
@@ -162,6 +151,17 @@ async crear(datos) {
 
         await usuarioRepositorio.actualizarEstado(id, activo);
         return this.obtenerPorId(id);
+    }
+
+    async actualizarRol(id, rol) {
+        const usuario = await usuarioRepositorio.actualizarRol(id, rol);
+        if (!usuario) {
+            const error = new Error("Usuario no encontrado");
+            error.status = 404;
+            throw error;
+        }
+
+        return new UsuarioObtenerDTO(usuario).data;
     }
 
     async eliminar(id) {

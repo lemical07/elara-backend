@@ -1,14 +1,88 @@
 
 import pool from "../config/db.js";
 
-class UsuarioRepositorio {
-    async crear({rol_id, nombre, apellido, correo, contrasena}) {
-        const [resultado] = await pool.execute(
+const BLOQUEO_ADMINISTRADORES = 'elara:registro-y-admins';
+
+function crearError(mensaje, status) {
+    const error = new Error(mensaje);
+    error.status = status;
+    return error;
+}
+
+export class UsuarioRepositorio {
+    constructor(conexionPool = pool) {
+        this.pool = conexionPool;
+    }
+
+    async ejecutarConBloqueo(operacion) {
+        const conexion = await this.pool.getConnection();
+        let bloqueoAdquirido = false;
+        let transaccionIniciada = false;
+        let errorOperacion = null;
+        let conexionDestruida = false;
+
+        try {
+            const [bloqueos] = await conexion.execute(
+                'SELECT GET_LOCK(?, 10) AS adquirido',
+                [BLOQUEO_ADMINISTRADORES]
+            );
+            if (bloqueos[0]?.adquirido !== 1) {
+                throw crearError('El servicio de cuentas está ocupado. Inténtalo de nuevo.', 503);
+            }
+            bloqueoAdquirido = true;
+
+            await conexion.beginTransaction();
+            transaccionIniciada = true;
+            const resultado = await operacion(conexion);
+            await conexion.commit();
+            transaccionIniciada = false;
+            return resultado;
+        } catch (error) {
+            errorOperacion = error;
+            if (transaccionIniciada) {
+                try {
+                    await conexion.rollback();
+                } catch (errorRollback) {
+                    error.cause ??= errorRollback;
+                    conexion.destroy();
+                    conexionDestruida = true;
+                }
+            }
+            throw error;
+        } finally {
+            if (bloqueoAdquirido && !conexionDestruida) {
+                try {
+                    await conexion.execute(
+                        'SELECT RELEASE_LOCK(?) AS liberado',
+                        [BLOQUEO_ADMINISTRADORES]
+                    );
+                } catch (errorLiberacion) {
+                    conexion.destroy();
+                    conexionDestruida = true;
+                    if (errorOperacion) {
+                        errorOperacion.cause ??= errorLiberacion;
+                    } else {
+                        console.error('[DB] No fue posible liberar el bloqueo de cuentas.');
+                    }
+                }
+            }
+            if (!conexionDestruida) {
+                conexion.release();
+            }
+        }
+    }
+
+    async registrarAtomico(operacion) {
+        return this.ejecutarConBloqueo(operacion);
+    }
+
+    async crear({rol_id, nombre, apellido, correo, contrasena}, conexion = this.pool) {
+        const [resultado] = await conexion.execute(
             `INSERT INTO usuario(rol_id, nombre, apellido, correo, contrasena)
              VALUES (?, ?, ?, ?, ?)`,
             [rol_id, nombre, apellido, correo, contrasena]
         );
-        return this.buscarPorId(resultado.insertId);
+        return this.buscarPorId(resultado.insertId, conexion);
     }
 
     async obtenerTodos() {
@@ -22,8 +96,8 @@ class UsuarioRepositorio {
         return filas;
     }
 
-    async buscarPorId(id) {
-        const [filas] = await pool.execute(
+    async buscarPorId(id, conexion = this.pool) {
+        const [filas] = await conexion.execute(
             `SELECT u.id, u.rol_id, u.nombre, u.apellido, u.correo, u.activo, r.nombre_rol
              FROM usuario u
              INNER JOIN rol r ON r.id = u.rol_id
@@ -44,8 +118,8 @@ class UsuarioRepositorio {
         return filas[0] ?? null;
     }
 
-    async buscarPorCorreo(correo) {
-        const [filas] = await pool.execute(
+    async buscarPorCorreo(correo, conexion = this.pool) {
+        const [filas] = await conexion.execute(
             `SELECT u.id, u.rol_id, u.nombre, u.apellido, u.correo, u.contrasena, u.activo,
                     r.nombre_rol
              FROM usuario u
@@ -56,8 +130,8 @@ class UsuarioRepositorio {
         return filas[0] ?? null;
     }
 
-    async buscarPorIdConRol(id) {
-        const [filas] = await pool.execute(
+    async buscarPorIdConRol(id, conexion = this.pool) {
+        const [filas] = await conexion.execute(
             `SELECT u.id, u.rol_id, u.nombre, u.apellido, u.correo, u.activo, r.nombre_rol
              FROM usuario u
              INNER JOIN rol r ON r.id = u.rol_id
@@ -67,8 +141,8 @@ class UsuarioRepositorio {
         return filas[0] ?? null;
     }
 
-    async buscarRolPorNombre(nombreRol) {
-        const [filas] = await pool.execute(
+    async buscarRolPorNombre(nombreRol, conexion = this.pool) {
+        const [filas] = await conexion.execute(
             `SELECT id, nombre_rol
              FROM rol
              WHERE LOWER(nombre_rol) = LOWER(?)
@@ -95,13 +169,7 @@ class UsuarioRepositorio {
     }
 
     async actualizarEstado(id, activo) {
-        const conexion = await pool.getConnection();
-        let transaccionIniciada = false;
-
-        try {
-            await conexion.beginTransaction();
-            transaccionIniciada = true;
-
+        return this.ejecutarConBloqueo(async conexion => {
             const [usuarios] = await conexion.execute(
                 `SELECT u.id, u.activo, r.nombre_rol
                  FROM usuario u
@@ -112,8 +180,6 @@ class UsuarioRepositorio {
             );
             const usuario = usuarios[0];
             if (!usuario) {
-                await conexion.rollback();
-                transaccionIniciada = false;
                 return null;
             }
 
@@ -130,11 +196,7 @@ class UsuarioRepositorio {
                 );
 
                 if (administradoresActivos.length <= 1) {
-                    await conexion.rollback();
-                    transaccionIniciada = false;
-                    const error = new Error('No se puede desactivar la última cuenta administradora activa.');
-                    error.status = 409;
-                    throw error;
+                    throw crearError('No se puede desactivar la última cuenta administradora activa.', 409);
                 }
             }
 
@@ -142,27 +204,12 @@ class UsuarioRepositorio {
                 `UPDATE usuario SET activo = ? WHERE id = ?`,
                 [activo, id]
             );
-            await conexion.commit();
-            transaccionIniciada = false;
-            return this.buscarPorId(id);
-        } catch (error) {
-            if (transaccionIniciada) {
-                await conexion.rollback();
-            }
-            throw error;
-        } finally {
-            conexion.release();
-        }
+            return this.buscarPorId(id, conexion);
+        });
     }
 
     async eliminar(id) {
-        const conexion = await pool.getConnection();
-        let transaccionIniciada = false;
-
-        try {
-            await conexion.beginTransaction();
-            transaccionIniciada = true;
-
+        return this.ejecutarConBloqueo(async conexion => {
             const [filas] = await conexion.execute(
                 `SELECT u.activo, r.nombre_rol
                  FROM usuario u
@@ -173,8 +220,6 @@ class UsuarioRepositorio {
             );
             const usuario = filas[0];
             if (!usuario) {
-                await conexion.rollback();
-                transaccionIniciada = false;
                 return false;
             }
 
@@ -191,9 +236,7 @@ class UsuarioRepositorio {
                 );
 
                 if (administradoresActivos.length <= 1) {
-                    const error = new Error('No se puede eliminar la última cuenta administradora activa.');
-                    error.status = 409;
-                    throw error;
+                    throw crearError('No se puede eliminar la última cuenta administradora activa.', 409);
                 }
             }
 
@@ -201,17 +244,59 @@ class UsuarioRepositorio {
                 `DELETE FROM usuario WHERE id = ?`,
                 [id]
             );
-            await conexion.commit();
-            transaccionIniciada = false;
             return resultado.affectedRows > 0;
-        } catch (error) {
-            if (transaccionIniciada) {
-                await conexion.rollback();
+        });
+    }
+
+    async actualizarRol(id, rol) {
+        return this.ejecutarConBloqueo(async conexion => {
+            const nombreRol = rol === 'ADMIN' ? 'Administrador' : 'Usuario';
+            const [roles] = await conexion.execute(
+                `SELECT id, nombre_rol
+                 FROM rol
+                 WHERE LOWER(nombre_rol) = LOWER(?)
+                 LIMIT 1`,
+                [nombreRol]
+            );
+            const nuevoRol = roles[0];
+            if (!nuevoRol) {
+                throw crearError('No está configurado el rol solicitado.', 503);
             }
-            throw error;
-        } finally {
-            conexion.release();
-        }
+
+            const [usuarios] = await conexion.execute(
+                `SELECT u.id, u.rol_id, u.activo, r.nombre_rol
+                 FROM usuario u
+                 INNER JOIN rol r ON r.id = u.rol_id
+                 WHERE u.id = ?
+                 FOR UPDATE`,
+                [id]
+            );
+            const usuario = usuarios[0];
+            if (!usuario) {
+                return null;
+            }
+
+            const esAdminActual = ['admin', 'administrador'].includes(usuario.nombre_rol.trim().toLowerCase());
+            if (usuario.activo && esAdminActual && rol === 'USUARIO') {
+                const [administradoresActivos] = await conexion.execute(
+                    `SELECT u.id
+                     FROM usuario u
+                     INNER JOIN rol r ON r.id = u.rol_id
+                     WHERE u.activo = TRUE
+                       AND LOWER(r.nombre_rol) IN ('admin', 'administrador')
+                     FOR UPDATE`
+                );
+                if (administradoresActivos.length <= 1) {
+                    throw crearError('No se puede retirar el acceso al último administrador activo.', 409);
+                }
+            }
+
+            await conexion.execute(
+                `UPDATE usuario SET rol_id = ? WHERE id = ?`,
+                [nuevoRol.id, id]
+            );
+            return this.buscarPorId(id, conexion);
+        });
     }
 }
 

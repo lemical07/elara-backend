@@ -1,61 +1,114 @@
+import { randomInt } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import usuarioRepositorio from '../repositories/user.repository.js';
 
+const ROL_ADMIN_NOMBRE = 'Administrador';
 const ROL_USUARIO_NOMBRE = 'Usuario';
+const CARACTERES_MAYUSCULAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const CARACTERES_MINUSCULAS = 'abcdefghijkmnpqrstuvwxyz';
+const CARACTERES_NUMERICOS = '23456789';
+const CARACTERES_ESPECIALES = '!@#$%&*+-_=';
+const LONGITUD_CONTRASENA_TEMPORAL = 13;
 
-class AutenticacionServicio {
-    constructor(repositorio = usuarioRepositorio) {
-        this.usuarioRepositorio = repositorio;
+export function generarContrasenaTemporal() {
+    const caracteres = [
+        CARACTERES_MAYUSCULAS[randomInt(CARACTERES_MAYUSCULAS.length)],
+        CARACTERES_MINUSCULAS[randomInt(CARACTERES_MINUSCULAS.length)],
+        CARACTERES_NUMERICOS[randomInt(CARACTERES_NUMERICOS.length)],
+        CARACTERES_ESPECIALES[randomInt(CARACTERES_ESPECIALES.length)]
+    ];
+    const conjunto = CARACTERES_MAYUSCULAS
+        + CARACTERES_MINUSCULAS
+        + CARACTERES_NUMERICOS
+        + CARACTERES_ESPECIALES;
+
+    while (caracteres.length < LONGITUD_CONTRASENA_TEMPORAL) {
+        caracteres.push(conjunto[randomInt(conjunto.length)]);
     }
 
-    async registrar(entrada = {}) {
-        if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) {
-            throw this.crearError('Los datos de registro deben ser un objeto JSON.', 400);
-        }
-        const { nombre, apellido, correo, contrasena } = entrada;
+    for (let indice = caracteres.length - 1; indice > 0; indice -= 1) {
+        const indiceAleatorio = randomInt(indice + 1);
+        [caracteres[indice], caracteres[indiceAleatorio]] =
+            [caracteres[indiceAleatorio], caracteres[indice]];
+    }
+
+    return caracteres.join('');
+}
+
+class AutenticacionServicio {
+    constructor(
+        repositorio = usuarioRepositorio,
+        generadorContrasena = generarContrasenaTemporal
+    ) {
+        this.usuarioRepositorio = repositorio;
+        this.generadorContrasena = generadorContrasena;
+    }
+
+    async registrar(entrada) {
         const datos = {
-            nombre: typeof nombre === 'string' ? nombre.trim() : '',
-            apellido: typeof apellido === 'string' ? apellido.trim() : '',
-            correo: typeof correo === 'string' ? correo.trim().toLowerCase() : '',
-            contrasena
+            nombre: entrada.nombre.trim(),
+            apellido: entrada.apellido.trim(),
+            correo: entrada.correo.trim().toLowerCase()
         };
 
-        if (!datos.nombre || !datos.apellido || !datos.correo || typeof datos.contrasena !== 'string') {
-            throw this.crearError('nombre, apellido, correo y contrasena son obligatorios.', 400);
-        }
-
-        if (datos.nombre.length > 60 || datos.apellido.length > 60) {
-            throw this.crearError('El nombre y el apellido no pueden superar 60 caracteres.', 400);
-        }
-
-        if (datos.correo.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.correo)) {
-            throw this.crearError('Debes proporcionar un correo electrónico válido.', 400);
-        }
-
-        if (datos.contrasena.length < 8 || Buffer.byteLength(datos.contrasena, 'utf8') > 72) {
-            throw this.crearError('La contraseña debe tener al menos 8 caracteres y un máximo de 72 bytes.', 400);
-        }
-
-        const usuarioExistente = await this.usuarioRepositorio.buscarPorCorreo(datos.correo);
-        if (usuarioExistente) {
-            throw this.crearError('El correo electrónico ya está registrado.', 409);
-        }
-
-        const rolUsuario = await this.usuarioRepositorio.buscarRolPorNombre(ROL_USUARIO_NOMBRE);
-        if (!rolUsuario) {
-            throw this.crearError('No está configurado el rol Usuario para registrar cuentas.', 503);
-        }
-
-        const contrasenaHash = await bcrypt.hash(datos.contrasena, 10);
-        let usuarioCreado;
         try {
-            usuarioCreado = await this.usuarioRepositorio.crear({
-                rol_id: rolUsuario.id,
-                nombre: datos.nombre,
-                apellido: datos.apellido,
-                correo: datos.correo,
-                contrasena: contrasenaHash
+            return await this.usuarioRepositorio.registrarAtomico(async conexion => {
+                const usuarioExistente = await this.usuarioRepositorio.buscarPorCorreo(datos.correo, conexion);
+                if (usuarioExistente) {
+                    throw this.crearError('El correo electrónico ya está registrado.', 409);
+                }
+
+                const [conteoUsuarios] = await conexion.execute(
+                    'SELECT COUNT(*) AS total FROM usuario'
+                );
+                const esPrimerAdministrador = Number(conteoUsuarios[0].total) === 0;
+                let contrasena;
+                let nombreRol;
+
+                if (esPrimerAdministrador) {
+                    if (Object.hasOwn(entrada, 'contrasena')) {
+                        throw this.crearError('La contraseña del primer administrador se genera automáticamente.', 400);
+                    }
+                    contrasena = this.generadorContrasena();
+                    nombreRol = ROL_ADMIN_NOMBRE;
+                } else {
+                    if (typeof entrada.contrasena !== 'string' || !entrada.contrasena) {
+                        throw this.crearError('La contraseña es obligatoria para registrar una cuenta.', 400);
+                    }
+                    contrasena = entrada.contrasena;
+                    nombreRol = ROL_USUARIO_NOMBRE;
+                }
+
+                const rol = await this.usuarioRepositorio.buscarRolPorNombre(nombreRol, conexion);
+                if (!rol) {
+                    throw this.crearError(`No está configurado el rol ${nombreRol} para registrar cuentas.`, 503);
+                }
+
+                const contrasenaHash = await bcrypt.hash(contrasena, 10);
+                const usuarioCreado = await this.usuarioRepositorio.crear({
+                    rol_id: rol.id,
+                    nombre: datos.nombre,
+                    apellido: datos.apellido,
+                    correo: datos.correo,
+                    contrasena: contrasenaHash
+                }, conexion);
+                const usuario = await this.usuarioRepositorio.buscarPorIdConRol(usuarioCreado.id, conexion);
+
+                if (!usuario) {
+                    throw new Error('No fue posible recuperar el usuario recién registrado.');
+                }
+
+                return {
+                    usuario: this.usuarioPublico(usuario),
+                    token: this.crearToken(usuario),
+                    ...(esPrimerAdministrador
+                        ? {
+                            primer_administrador: true,
+                            contrasena_temporal: contrasena
+                        }
+                        : {})
+                };
             });
         } catch (causa) {
             if (causa.code === 'ER_DUP_ENTRY') {
@@ -63,16 +116,6 @@ class AutenticacionServicio {
             }
             throw causa;
         }
-        const usuario = await this.usuarioRepositorio.buscarPorIdConRol(usuarioCreado.id);
-
-        if (!usuario) {
-            throw new Error('No fue posible recuperar el usuario recién registrado.');
-        }
-
-        return {
-            usuario: this.usuarioPublico(usuario),
-            token: this.crearToken(usuario)
-        };
     }
 
     usuarioPublico(usuario) {

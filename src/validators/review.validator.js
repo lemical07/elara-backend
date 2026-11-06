@@ -3,21 +3,25 @@ import { body, param } from 'express-validator';
 const camposPermitidos = new Set(['contenido_id', 'titulo', 'comentario', 'calificacion', 'nombre_visitante']);
 const camposActualizables = new Set(['titulo', 'comentario', 'calificacion']);
 
-const validarCuerpo = campos => body().custom((_, { req }) => {
-    const datos = req.body;
-    if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
-        throw new Error('El cuerpo debe ser un objeto JSON.');
-    }
+class ResenaValidaciones {
+    static validarCuerpo(campos) {
+        return body().custom((_, { req }) => {
+            const datos = req.body;
+            if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+                throw new Error('El cuerpo debe ser un objeto JSON.');
+            }
 
-    const claves = Object.keys(datos);
-    if (claves.length === 0 || claves.some(campo => !campos.has(campo))) {
-        throw new Error(`Envía únicamente los campos permitidos: ${[...campos].join(', ')}.`);
+            const claves = Object.keys(datos);
+            if (claves.length === 0 || claves.some(campo => !campos.has(campo))) {
+                throw new Error(`Envía únicamente los campos permitidos: ${[...campos].join(', ')}.`);
+            }
+            return true;
+        });
     }
-    return true;
-});
+}
 
 export const ResenaCrearValidaciones = [
-    validarCuerpo(camposPermitidos),
+    ResenaValidaciones.validarCuerpo(camposPermitidos),
     body('contenido_id')
         .isInt({ min: 1 }).withMessage('El contenido_id debe ser un entero positivo.'),
     body('titulo')
@@ -50,7 +54,7 @@ export const ResenaContenidoIdValidaciones = [
 ];
 
 export const ResenaActualizarValidaciones = [
-    validarCuerpo(camposActualizables),
+    ResenaValidaciones.validarCuerpo(camposActualizables),
     body('titulo')
         .optional()
         .isString().withMessage('El título debe ser texto.')

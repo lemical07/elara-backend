@@ -12,17 +12,43 @@ const camposContenido = new Set([
 ]);
 const tiposPermitidos = ['pelicula', 'serie', 'anime'];
 
-const validarCuerpoContenido = body().custom((_, { req }) => {
-    const datos = req.body;
-    if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
-        throw new Error('El cuerpo debe ser un objeto JSON.');
+class ContenidoValidaciones {
+    static validarCuerpo() {
+        return body().custom((_, { req }) => {
+            const datos = req.body;
+            if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+                throw new Error('El cuerpo debe ser un objeto JSON.');
+            }
+            const claves = Object.keys(datos);
+            if (claves.length === 0 || claves.some(campo => !camposContenido.has(campo))) {
+                throw new Error(`Envía únicamente los campos permitidos: ${[...camposContenido].join(', ')}.`);
+            }
+            return true;
+        });
     }
-    const claves = Object.keys(datos);
-    if (claves.length === 0 || claves.some(campo => !camposContenido.has(campo))) {
-        throw new Error(`Envía únicamente los campos permitidos: ${[...camposContenido].join(', ')}.`);
+
+    static validarCamposObligatorios() {
+        return body().custom((_, { req }) => {
+            if (camposObligatorios.some(campo => !Object.hasOwn(req.body, campo))) {
+                throw new Error('Para reemplazar el contenido envía categoria_id, titulo, tipo y anio.');
+            }
+            return true;
+        });
     }
-    return true;
-});
+
+    static validarCuerpoPersonaje() {
+        return body().custom((_, { req }) => {
+            const datos = req.body;
+            if (!datos || typeof datos !== 'object' || Array.isArray(datos) ||
+                Object.keys(datos).length !== 2 ||
+                !Object.hasOwn(datos, 'nombre') ||
+                !Object.hasOwn(datos, 'tipo')) {
+                throw new Error('Envía únicamente nombre y tipo.');
+            }
+            return true;
+        });
+    }
+}
 
 export const ContenidoIdValidaciones = [
     param('id')
@@ -74,34 +100,20 @@ const validacionesCamposContenido = [
 ];
 
 export const ContenidoCrearValidaciones = [
-    validarCuerpoContenido,
+    ContenidoValidaciones.validarCuerpo(),
     ...validacionesCamposContenido
 ];
 
 export const ContenidoActualizarValidaciones = [
     ...ContenidoIdValidaciones,
-    validarCuerpoContenido,
+    ContenidoValidaciones.validarCuerpo(),
     ...validacionesCamposContenido,
-    body().custom((_, { req }) => {
-        if (camposObligatorios.some(campo => !Object.hasOwn(req.body, campo))) {
-            throw new Error('Para reemplazar el contenido envía categoria_id, titulo, tipo y anio.');
-        }
-        return true;
-    })
+    ContenidoValidaciones.validarCamposObligatorios()
 ];
 
 export const PersonajeCrearValidaciones = [
     ...ContenidoIdValidaciones,
-    body().custom((_, { req }) => {
-        const datos = req.body;
-        if (!datos || typeof datos !== 'object' || Array.isArray(datos) ||
-            Object.keys(datos).length !== 2 ||
-            !Object.hasOwn(datos, 'nombre') ||
-            !Object.hasOwn(datos, 'tipo')) {
-            throw new Error('Envía únicamente nombre y tipo.');
-        }
-        return true;
-    }),
+    ContenidoValidaciones.validarCuerpoPersonaje(),
     body('nombre').isString().trim().notEmpty().isLength({ max: 100 })
         .withMessage('El nombre es obligatorio y no puede superar 100 caracteres.'),
     body('tipo').isIn(['principal', 'secundario'])

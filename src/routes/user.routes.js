@@ -6,6 +6,7 @@ import UsuarioPerfilValidaciones from '../validators/user.profile.validator.js';
 import UsuarioCambiarContrasenaValidaciones from '../validators/user.password.validator.js';
 import UsuarioBuscarPorIdValidaciones from '../validators/user.per.id.validator.js';
 import UsuarioActualizarEstadoValidaciones from '../validators/user.update.status.validator.js';
+import UsuarioActualizarRolValidaciones from '../validators/user.role.validator.js';
 import UsuarioEliminarValidaciones from '../validators/user.delete.validator.js';
 
 const router = Router();
@@ -20,6 +21,7 @@ router.delete('/me/permanente', autenticarJWT, UsuarioEliminarValidaciones, vali
 router.get('/', autenticarJWT, autorizarAdmin, usuarioControlador.obtenerUsuarios);
 router.get('/:id', autenticarJWT, autorizarAdmin, UsuarioBuscarPorIdValidaciones, validarSolicitud, usuarioControlador.obtenerUsuario);
 router.patch('/:id', autenticarJWT, autorizarAdmin, UsuarioBuscarPorIdValidaciones, UsuarioPerfilValidaciones, validarSolicitud, usuarioControlador.actualizarUsuario);
+router.patch('/:id/rol', autenticarJWT, autorizarAdmin, UsuarioBuscarPorIdValidaciones, UsuarioActualizarRolValidaciones, validarSolicitud, usuarioControlador.actualizarRolUsuario);
 router.patch('/:id/estado', autenticarJWT, autorizarAdmin, UsuarioActualizarEstadoValidaciones, validarSolicitud, usuarioControlador.actualizarEstadoUsuario);
 
 export default router;

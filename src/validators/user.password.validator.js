@@ -1,6 +1,10 @@
 import { body } from 'express-validator';
 
-const camposPermitidos = new Set(['contrasena_actual', 'contrasena_nueva']);
+const camposPermitidos = new Set([
+    'contrasena_actual',
+    'contrasena_nueva',
+    'contrasena_nueva_confirmacion'
+]);
 
 const UsuarioCambiarContrasenaValidaciones = [
     body().custom((_, { req }) => {
@@ -27,7 +31,11 @@ const UsuarioCambiarContrasenaValidaciones = [
                 throw new Error('La nueva contraseña no puede superar 72 bytes.');
             }
             return true;
-        })
+        }),
+    body('contrasena_nueva_confirmacion')
+        .isString().withMessage('La confirmación de contraseña debe ser texto.')
+        .custom((valor, { req }) => valor === req.body.contrasena_nueva)
+        .withMessage('La confirmación debe coincidir con la nueva contraseña.')
 ];
 
 export default UsuarioCambiarContrasenaValidaciones;

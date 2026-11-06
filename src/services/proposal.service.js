@@ -1,20 +1,20 @@
 import propuestaRepositorio from '../repositories/proposal.repository.js';
 import { PropuestaRespuestaDTO } from '../dtos/proposal.dtos.js';
 
-function crearError(mensaje, status) {
-    const error = new Error(mensaje);
-    error.status = status;
-    return error;
-}
-
 class PropuestaServicio {
     constructor(repositorio = propuestaRepositorio) {
         this.propuestaRepositorio = repositorio;
     }
 
+    crearError(mensaje, status) {
+        const error = new Error(mensaje);
+        error.status = status;
+        return error;
+    }
+
     async procesarPropuesta(datosPropuesta, usuarioId) {
         if (!(await this.propuestaRepositorio.existeCategoria(datosPropuesta.categoria_id))) {
-            throw crearError('Categoría no encontrada.', 404);
+            throw this.crearError('Categoría no encontrada.', 404);
         }
         const contenidoCreado = await this.propuestaRepositorio.guardarPropuesta(datosPropuesta, usuarioId);
         return new PropuestaRespuestaDTO(contenidoCreado).data;
@@ -28,7 +28,7 @@ class PropuestaServicio {
     async resolverPropuesta(id, estado, administradorId) {
         const propuesta = await this.propuestaRepositorio.actualizarEstado(id, estado, administradorId);
         if (!propuesta) {
-            throw crearError('Propuesta no encontrada.', 404);
+            throw this.crearError('Propuesta no encontrada.', 404);
         }
         return propuesta;
     }

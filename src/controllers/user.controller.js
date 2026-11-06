@@ -100,4 +100,17 @@ export class UsuarioControlador {
             return next(error);
         }
     };
+
+    actualizarRolUsuario = async (req, res, next) => {
+        try {
+            const usuario = await this.usuarioServicio.actualizarRol(req.params.id, req.body.rol);
+            return res.status(200).json({
+                exito: true,
+                mensaje: 'Rol del usuario actualizado correctamente.',
+                datos: usuario
+            });
+        } catch (error) {
+            return next(error);
+        }
+    };
 }

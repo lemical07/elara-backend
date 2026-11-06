@@ -69,8 +69,11 @@ const options = {
                     nombre: texto,
                     apellido: texto,
                     correo: { type: 'string', format: 'email' },
-                    contrasena: { type: 'string', minLength: 8 }
-                }, ['nombre', 'apellido', 'correo', 'contrasena']),
+                    contrasena: { type: 'string', minLength: 8, description: 'Obligatoria salvo durante la inicialización de la primera cuenta.' }
+                }, ['nombre', 'apellido', 'correo']),
+                RolUsuario: objeto({
+                    rol: { type: 'string', enum: ['ADMIN', 'USUARIO'] }
+                }, ['rol']),
                 Credenciales: objeto({
                     correo: { type: 'string', format: 'email' },
                     contrasena: texto
@@ -119,8 +122,9 @@ const options = {
                 }, ['nombre']),
                 CambioContrasena: objeto({
                     contrasena_actual: texto,
-                    contrasena_nueva: { type: 'string', minLength: 8 }
-                }, ['contrasena_actual', 'contrasena_nueva'])
+                    contrasena_nueva: { type: 'string', minLength: 8 },
+                    contrasena_nueva_confirmacion: { type: 'string', minLength: 8 }
+                }, ['contrasena_actual', 'contrasena_nueva', 'contrasena_nueva_confirmacion'])
             }
         },
         paths: {
@@ -134,12 +138,14 @@ const options = {
             '/api/auth/register': {
                 post: {
                     tags: ['Autenticación'],
-                    summary: 'Registrar una cuenta de usuario',
+                    summary: 'Registrar una cuenta o inicializar el primer administrador',
+                    description: 'El backend determina si es la primera cuenta. Durante la inicialización se rechaza una contraseña suministrada y se devuelve una clave temporal de un solo uso, que debe recibirse por HTTPS y no queda disponible en endpoints posteriores.',
                     requestBody: cuerpoJSON({ $ref: '#/components/schemas/Registro' }),
                     responses: {
-                        201: respuestaJSON('Usuario registrado y token emitido.'),
+                        201: respuestaJSON('Cuenta registrada. La primera cuenta recibe rol Administrador y contraseña temporal una sola vez; las posteriores reciben rol Usuario.'),
                         400: respuestaJSON('Datos inválidos.'),
-                        409: respuestaJSON('El correo ya está registrado.')
+                        409: respuestaJSON('El correo ya está registrado.'),
+                        503: respuestaJSON('No fue posible obtener el bloqueo de inicialización.')
                     }
                 }
             },
@@ -256,6 +262,22 @@ const options = {
                     responses: {
                         200: respuestaJSON('Estado actualizado.'),
                         409: respuestaJSON('No se puede desactivar la última cuenta administradora activa.')
+                    }
+                }
+            },
+            '/api/usuarios/{id}/rol': {
+                parameters: [parametroId('id', 'Identificador del usuario.')],
+                patch: {
+                    tags: ['Usuarios'],
+                    summary: 'Conceder o retirar el rol de administrador',
+                    description: 'Solo administradores autenticados pueden cambiar roles. No permite retirar el acceso al último administrador activo.',
+                    security: jwt,
+                    requestBody: cuerpoJSON({ $ref: '#/components/schemas/RolUsuario' }),
+                    responses: {
+                        200: respuestaJSON('Rol actualizado en MySQL.'),
+                        403: respuestaJSON('Se requiere rol administrador.'),
+                        404: respuestaJSON('Usuario no encontrado.'),
+                        409: respuestaJSON('No se puede retirar el acceso al último administrador activo.')
                     }
                 }
             },
