@@ -4,6 +4,7 @@ import { autenticarJWT, autenticarOpcional } from '../middleware/auth.middleware
 import { identificarVisitante } from '../middleware/visitor.middleware.js';
 import { validarSolicitud } from '../middleware/validation.middleware.js';
 import {ResenaActualizarValidaciones, ResenaContenidoIdValidaciones, ResenaCrearValidaciones, ResenaIdValidaciones} from '../validators/review.validator.js';
+import exportarResenasControlador from '../controllers/export.review.controller.js';
 
 const router = Router();
 const resenaControlador = new ResenaControlador();
@@ -14,5 +15,7 @@ router.get('/mis-reviews', autenticarOpcional, identificarVisitante, resenaContr
 router.get('/:id', ResenaIdValidaciones, validarSolicitud, resenaControlador.obtenerPorId);
 router.put('/:id', autenticarOpcional, identificarVisitante, ResenaIdValidaciones, ResenaActualizarValidaciones, validarSolicitud, resenaControlador.actualizar);
 router.delete('/:id', autenticarOpcional, identificarVisitante, ResenaIdValidaciones, validarSolicitud, resenaControlador.eliminar);
+
+router.get('/export/:id', ResenaIdValidaciones, validarSolicitud, exportarResenasControlador.exportarCSV);
 
 export default router;

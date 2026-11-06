@@ -15,6 +15,7 @@ import rutasAutenticacion from './routes/auth.routes.js';
 import rutasCategoria from './routes/category.route.js';
 import rutasContenido from './routes/content.routes.js';
 import rutasUsuario from './routes/user.routes.js';
+
 import rutasResena from './routes/review.routes.js';
 import rutasReaccion from './routes/reaction.routes.js';
 import rutasPropuesta from './routes/proposal.routes.js';

@@ -290,6 +290,7 @@ Para proponer contenido se permiten `titulo`, `descripcion`, `anio`, `tipo`, `ca
 |---|---|---|---|
 | `POST` | `/api/reviews` | Público, JWT o visitante | Crea una reseña de contenido aprobado. |
 | `GET` | `/api/reviews/contenido/{contenidoId}` | Público | Lista reseñas del contenido aprobado. |
+| `GET` | `/api/reviews/export/{id}` | Público | Descarga las reseñas del contenido como archivo CSV. |
 | `GET` | `/api/reviews/mis-reviews` | Público, JWT o visitante | Lista reseñas de la identidad actual. |
 | `GET` | `/api/reviews/{id}` | Público | Consulta una reseña visible. |
 | `PUT` | `/api/reviews/{id}` | Autor (JWT o cookie de visitante) | Actualiza una reseña propia. |
@@ -370,7 +371,14 @@ El script definido en `package.json` es:
 npm test
 ```
 
-Invoca el runner integrado `node --test`. En el checkout documentado no hay actualmente una carpeta `tests/` con pruebas del backend, por lo que este comando no representa una suite funcional de pruebas de API.
+Invoca el runner integrado `node --test`, que ejecuta las pruebas disponibles en `tests/`.
+
+
+## Exportación de reseñas
+
+`GET /api/reviews/export/{id}` descarga las reseñas del contenido en un archivo CSV con codificación UTF-8. El archivo se transmite directamente al cliente y no se conserva en el servidor.
+
+Si no existen reseñas para el contenido, la API responde `404`. Los campos del CSV se escapan y neutralizan valores que podrían interpretarse como fórmulas en una hoja de cálculo.
 
 ## Licencia
 

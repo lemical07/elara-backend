@@ -449,6 +449,21 @@ const options = {
                     responses: { 200: respuestaJSON('Reseñas visibles.'), 404: respuestaJSON('Contenido no encontrado.') }
                 }
             },
+            '/api/reviews/export/{id}': {
+                parameters: [parametroId('id', 'Identificador del contenido.')],
+                get: {
+                    tags: ['Reseñas'],
+                    summary: 'Descargar reseñas en formato CSV',
+                    responses: {
+                        200: {
+                            description: 'Archivo CSV con las reseñas del contenido.',
+                            content: { 'text/csv': { schema: { type: 'string', format: 'binary' } } }
+                        },
+                        404: respuestaJSON('No se encontraron reseñas para el contenido.'),
+                        400: respuestaJSON('Identificador de contenido inválido.')
+                    }
+                }
+            },
             '/api/reviews/mis-reviews': {
                 get: {
                     tags: ['Reseñas'],

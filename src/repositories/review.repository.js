@@ -168,6 +168,22 @@ class ResenaRepositorio {
         );
         return resultado.affectedRows > 0;
     }
+
+    async exportarResenasCSV(contenidoId) {
+        const [filas] = await pool.execute(
+            `SELECT COALESCE(u.nombre, r.nombre_visitante, 'Visitante') AS nombreUsuario,
+                    r.calificacion AS calificacion,
+                    r.comentario AS comentario,
+                    r.creado_en AS fechaCreacion
+            FROM review r
+            LEFT JOIN usuario u ON r.usuario_id = u.id
+            WHERE r.contenido_id = ?
+            ORDER BY r.creado_en, r.id`,
+            [contenidoId]
+        );
+        return filas;
+    }
 }
+
 
 export default new ResenaRepositorio();
